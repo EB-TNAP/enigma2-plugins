@@ -903,7 +903,7 @@ class Blindscan(ConfigListScreen, Screen):
 		if display_pol == "vertical":
 			display_pol = _("vertical")
 
-		tmpmes = _("Tp count = (%d)   Scan Steps = %d of %d\nSatellite: %s\nPolarization: %s  Frequency range: %d - %d MHz  Symbol rates: %d - %d MHz") %(len(self.tmp_tplist), self.running_count, self.max_count, orb[1], display_pol, status_box_start_freq, status_box_end_freq, config.blindscan_start_symbol.value, config.blindscan_stop_symbol.value)
+		tmpmes = _("Tp count = (%d)   Scan Steps = %d of %d --%s\nSatellite: %s\nFrequency range: %d - %d MHz  Symbol Rates: %d - %d ") %(len(self.tmp_tplist), self.running_count, self.max_count, display_pol, orb[1], status_box_start_freq, status_box_end_freq, config.blindscan_start_symbol.value, config.blindscan_stop_symbol.value)
 		self.start_freq = status_box_start_freq # Start Freq. key for ServiceScan
 		self.end_freq = status_box_end_freq  # Stop freq. key for ServiceScan
 		tuner = nimmanager.nim_slots[self.feid].friendly_full_description
