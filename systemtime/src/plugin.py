@@ -23,8 +23,8 @@ from calendar import isleap
 
 
 config.plugins.SystemTime = ConfigSubsection()
-config.plugins.SystemTime.choiceSystemTime = ConfigSelection(default="0", choices=[("0", _("Transponder")), ("1", _("NTP"))])
-config.plugins.SystemTime.useNTPminutes = ConfigSelection(default="60", choices=[("5", _("5 mins")), ("15", _("15 mins")), ("30", _("30 mins")), ("60", _("1 hour")), ("120", _("2 hours")), ("240", _("4 hours")), ("720", _("12 hours")), ("1440", _("24 hours")), ("2880", _("48 hours"))])
+config.plugins.SystemTime.choiceSystemTime = ConfigSelection(default="1", choices=[("0", _("Transponder")), ("1", _("NTP"))])
+config.plugins.SystemTime.useNTPminutes = ConfigSelection(default="720", choices=[("5", _("5 mins")), ("15", _("15 mins")), ("30", _("30 mins")), ("60", _("1 hour")), ("120", _("2 hours")), ("240", _("4 hours")), ("720", _("12 hours")), ("1440", _("24 hours")), ("2880", _("48 hours"))])
 config.plugins.SystemTime.syncNTPcoldstart = ConfigYesNo(default=False)
 config.plugins.SystemTime.useRTCstart = ConfigYesNo(default=False)
 config.plugins.SystemTime.wifi_delay = ConfigInteger(0, limits=(0, 120))
