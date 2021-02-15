@@ -746,6 +746,11 @@ class Blindscan(ConfigListScreen, Screen):
 		self.doRun(tmp_list, tmp_pol, tmp_band)
 
 	def doRun(self, tmp_list, tmp_pol, tmp_band):
+		cur_orb_pos = self.getOrbPos()
+		if cur_orb_pos == 2571:
+			self.session.open(MessageBox, _("Blindscan is not supported for this satellite "))
+			print'----781 blindscan orbit = 2571'
+			return
 		def GetCommand(nimIdx):
 			_nimSocket = self.nimSockets
 			self.makeNimSocket(nimName)
