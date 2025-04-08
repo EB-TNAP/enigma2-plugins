@@ -23,8 +23,6 @@ from .filters import TransponderFiltering # imported from Blindscan folder
 #used for the XML file
 from time import strftime, time
 import os
-import Dvbcsva #                          
-import Dvbcsvb #
 
 
 BOX_MODEL = "all"
@@ -188,6 +186,8 @@ defaults = {"search_type": "transponders",
 	"C_band_stop_frequency": 4200,
 	"C_band_5750_start_frequency": 3625,
 	"C_band_5750_stop_frequency": 4800,
+	"C_band_bandstack_start_frequency": 3625,
+	"C_band_bandstack_stop_frequency": 4800,
 	"user_defined_lnb_start_freq": 0,
 	"user_defined_lnb_stop_freq": 0,
 	"user_defined_lnb_inverted_start_freq": 0,
@@ -226,6 +226,8 @@ config.blindscan.C_band_start_frequency = ConfigInteger(default=defaults["C_band
 config.blindscan.C_band_stop_frequency = ConfigInteger(default=defaults["C_band_stop_frequency"], limits=(3001, 4201))
 config.blindscan.C_band_5750_start_frequency = ConfigInteger(default=defaults["C_band_5750_start_frequency"], limits=(3600, 4820))
 config.blindscan.C_band_5750_stop_frequency = ConfigInteger(default=defaults["C_band_5750_stop_frequency"], limits=(3601, 4821))
+config.blindscan.C_band_bandstack_start_frequency = ConfigInteger(default=defaults["C_band_bandstack_start_frequency"], limits=(3600, 4820))
+config.blindscan.C_band_bandstack_stop_frequency = ConfigInteger(default=defaults["C_band_bandstack_stop_frequency"], limits=(3601, 4821))
 config.blindscan.user_defined_lnb_start_freq = ConfigInteger(default=defaults["user_defined_lnb_start_freq"], limits=(0, 30000))
 config.blindscan.user_defined_lnb_stop_freq = ConfigInteger(default=defaults["user_defined_lnb_stop_freq"], limits=(0, 30000))
 config.blindscan.user_defined_lnb_inverted_start_freq = ConfigInteger(default=defaults["user_defined_lnb_inverted_start_freq"], limits=(0, 30000))
@@ -391,6 +393,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.orb_pos_now = 0
 		self.is_c_band_scan = False
 		self.is_c_band_scan_5750 = False
+		self.is_c_band_bandstack_scan = False
 ####################
 		self.is_Ku_band_scan = False
 		self.user_defined_lnb_scan = False
@@ -670,6 +673,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.universal_lo_freq = {"low": 9750, "high": 10600}
 		self.c_band_freq_limits = {"low": 3000, "high": 4200, "default_low": 3400, "default_high": 4200}
 		self.c_band_5750_freq_limits = {"low": 3600, "high": 4820, "default_low": 3625, "default_high": 4800}
+		self.c_band_bandstack_freq_limits = {"low": 3400, "high": 4800, "default_low": 3625, "default_high": 4800}
 ################
 		self.c_band_5750_lo_freq = 5750
 		self.c_band_lo_freq = 5150
@@ -688,7 +692,8 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.blindscan_C_band_stop_frequency = ConfigInteger(default=config.blindscan.C_band_stop_frequency.value, limits=(self.c_band_freq_limits["low"] + 1, self.c_band_freq_limits["high"]))
 		self.blindscan_C_band_5750_start_frequency = ConfigInteger(default=config.blindscan.C_band_5750_start_frequency.value, limits=(self.c_band_5750_freq_limits["low"], self.c_band_5750_freq_limits["high"] - 1))
 		self.blindscan_C_band_5750_stop_frequency = ConfigInteger(default=config.blindscan.C_band_5750_stop_frequency.value, limits=(self.c_band_5750_freq_limits["low"] + 1, self.c_band_5750_freq_limits["high"]))
-
+		self.blindscan_C_band_bandstack_start_frequency = ConfigInteger(default=config.blindscan.C_band_bandstack_start_frequency.value, limits=(self.c_band_bandstack_freq_limits["low"], self.c_band_bandstack_freq_limits["high"] - 1))
+		self.blindscan_C_band_bandstack_stop_frequency = ConfigInteger(default=config.blindscan.C_band_bandstack_stop_frequency.value, limits=(self.c_band_bandstack_freq_limits["low"] + 1, self.c_band_bandstack_freq_limits["high"]))
 ##############
 
 		# collect all nims which are *not* set to "nothing"
@@ -794,6 +799,9 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			elif self.is_c_band_5750_scan:
 				self.list.append(getConfigListEntry(_("Scan start frequency"), self.blindscan_C_band_5750_start_frequency, _('Frequency values must be between %d MHz and %d MHz (C-band)') % (self.c_band_5750_freq_limits["low"], self.c_band_5750_freq_limits["high"] - 1)))
 				self.list.append(getConfigListEntry(_("Scan stop frequency"), self.blindscan_C_band_5750_stop_frequency, _('Frequency values must be between %d MHz and %d MHz (C-band)') % (self.c_band_5750_freq_limits["low"] + 1, self.c_band_5750_freq_limits["high"])))
+			elif self.is_c_band_bandstack_scan:
+				self.list.append(getConfigListEntry(_("Scan start frequency"), self.blindscan_C_band_bandstack_start_frequency, _('Frequency values must be between %d MHz and %d MHz (C-band)') % (self.c_band_bandstack_freq_limits["low"], self.c_band_bandstack_freq_limits["high"] - 1)))
+				self.list.append(getConfigListEntry(_("Scan stop frequency"), self.blindscan_C_band_bandstack_stop_frequency, _('Frequency values must be between %d MHz and %d MHz (C-band)') % (self.c_band_bandstack_freq_limits["low"] + 1, self.c_band_bandstack_freq_limits["high"])))
 			elif self.is_Ku_band_scan:
 				self.list.append(getConfigListEntry(_("Scan start frequency"), self.blindscan_Ku_band_start_frequency, _('Frequency values must be between %d MHz and %d MHz') % (self.Ku_band_freq_limits["low"], self.Ku_band_freq_limits["high"] - 1)))
 				self.list.append(getConfigListEntry(_("Scan stop frequency"), self.blindscan_Ku_band_stop_frequency, _('Frequency values must be between %d MHz and %d MHz') % (self.Ku_band_freq_limits["low"] + 1, self.Ku_band_freq_limits["high"])))
@@ -886,7 +894,9 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		config.blindscan.C_band_stop_frequency.value = self.blindscan_C_band_stop_frequency.value
 		config.blindscan.C_band_5750_start_frequency.value = self.blindscan_C_band_5750_start_frequency.value
 		config.blindscan.C_band_5750_stop_frequency.value = self.blindscan_C_band_5750_stop_frequency.value
-		
+		config.blindscan.C_band_bandstack_start_frequency.value = self.blindscan_C_band_bandstack_start_frequency.value
+		config.blindscan.C_band_bandstack_stop_frequency.value = self.blindscan_C_band_bandstack_stop_frequency.value
+
 		# For user defined LNB, check if we need to save those values
 		if self.user_defined_lnb_scan:
 			if config.blindscan.user_defined_lnb_inversion.value:
@@ -1036,6 +1046,10 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			self.checkStartStopValues(self.blindscan_C_band_5750_start_frequency, self.blindscan_C_band_5750_stop_frequency)
 			self.blindscan_start_frequency = self.blindscan_C_band_5750_start_frequency.value
 			self.blindscan_stop_frequency = self.blindscan_C_band_5750_stop_frequency.value
+		elif self.is_c_band_bandstack_scan:
+			self.checkStartStopValues(self.blindscan_C_band_bandstack_start_frequency, self.blindscan_C_band_bandstack_stop_frequency)
+			self.blindscan_start_frequency = self.blindscan_C_band_bandstack_start_frequency.value
+			self.blindscan_stop_frequency = self.blindscan_C_band_bandstack_stop_frequency.value
 ###################
 
 		elif self.user_defined_lnb_scan:
@@ -1178,6 +1192,8 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			tuning_frequency = random_c_band_tunable_freq
 		elif self.is_c_band_5750_scan:
 			tuning_frequency = random_c_band_5750_tunable_freq
+		elif self.is_c_band_bandstack_scan:
+			tuning_frequency = random_c_band_5750_tunable_freq
 ######################
 
 		elif self.user_defined_lnb_scan:
@@ -1222,6 +1238,21 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			temp_end_int_freq = self.c_band_5750_lo_freq - self.blindscan_start_frequency
 			status_box_start_freq = self.c_band_5750_lo_freq - temp_end_int_freq
 			status_box_end_freq = self.c_band_5750_lo_freq - temp_start_int_freq
+		elif self.is_c_band_bandstack_scan:
+			# For C-band bandstacked LNB, polarization determines which LO to use
+			if pol == "vertical":
+				# Use c_band_lo_freq (5150 MHz) for vertical polarization
+				temp_start_int_freq = self.c_band_lo_freq - self.blindscan_stop_frequency
+				temp_end_int_freq = self.c_band_lo_freq - self.blindscan_start_frequency
+				status_box_start_freq = self.c_band_lo_freq - temp_end_int_freq
+				status_box_end_freq = self.c_band_lo_freq - temp_start_int_freq
+			else:
+				# Use c_band_5750_lo_freq (5750 MHz) for horizontal polarization
+				temp_start_int_freq = self.c_band_5750_lo_freq - self.blindscan_stop_frequency
+				temp_end_int_freq = self.c_band_5750_lo_freq - self.blindscan_start_frequency
+				status_box_start_freq = self.c_band_5750_lo_freq - temp_end_int_freq
+				status_box_end_freq = self.c_band_5750_lo_freq - temp_start_int_freq
+
 ##################
 
 		elif self.user_defined_lnb_scan:
@@ -1839,6 +1870,17 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				if tplist[x].frequency > (self.c_band_5750_freq_limits["high"] * multiplier):
 					tplist[x].frequency = (self.c_band_5750_lo_freq * multiplier) - (tplist[x].frequency - (self.universal_lo_freq["low"] * multiplier))
 				x += 1
+		elif self.is_c_band_bandstack_scan: # for c-band bandstacked LNB scans
+			x = 0
+			for transponders in tplist:
+				if tplist[x].frequency > (self.c_band_bandstack_freq_limits["high"] * multiplier):
+					# For c-band bandstacked LNB, polarization determines which LO to use
+					if tplist[x].polarisation == eDVBFrontendParametersSatellite.Polarisation_Vertical:
+						tplist[x].frequency = (self.c_band_lo_freq * multiplier) - (tplist[x].frequency - (self.universal_lo_freq["low"] * multiplier))
+					else:
+						tplist[x].frequency = (self.c_band_5750_lo_freq * multiplier) - (tplist[x].frequency - (self.universal_lo_freq["low"] * multiplier))
+				x += 1
+
 		elif self.user_defined_lnb_scan and self.adjust_freq:
 			x = 0
 			for transponders in tplist:
@@ -1877,6 +1919,13 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			data_if_freq = abs(self.c_band_lo_freq - data_freq)
 		elif self.is_c_band_5750_scan and data_freq > self.c_band_5750_freq_limits["low"] - 1 and data_freq < self.c_band_5750_freq_limits["high"] + 1:
 			data_if_freq = abs(self.c_band_5750_lo_freq - data_freq)
+		elif self.is_c_band_bandstack_scan and data_freq > self.c_band_bandstack_freq_limits["low"] - 1 and data_freq < self.c_band_bandstack_freq_limits["high"] + 1:
+			# For c-band bandstacked LNB, polarization determines which LO to use
+			if tab_pol[pol] == eDVBFrontendParametersSatellite.Polarisation_Vertical:
+				data_if_freq = abs(self.c_band_lo_freq - data_freq)
+			else:
+				data_if_freq = abs(self.c_band_5750_lo_freq - data_freq)
+
 #######################
 
 		elif self.user_defined_lnb_scan and not self.adjust_freq:
@@ -1984,6 +2033,9 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		elif self.is_c_band_5750_scan:
 			self.blindscan_C_band_5750_start_frequency.value = self.c_band_5750_freq_limits["default_low"]
 			self.blindscan_C_band_5750_stop_frequency.value = self.c_band_5750_freq_limits["default_high"]
+		elif self.is_c_band_bandstack_scan:
+			self.blindscan_C_band_bandstack_start_frequency.value = self.c_band_5750_freq_limits["default_low"]
+			self.blindscan_C_band_bandstack_stop_frequency.value = self.c_band_5750_freq_limits["default_high"]
 		
 		# Save all configuration settings
 		config.blindscan.save()
@@ -1996,7 +2048,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		if not self.SatBandCheck():
 			self["key_blue"].setText("")
 			return
-
+		
 		# Always set blue button text if the satellite band is supported
 		self["key_blue"].setText(_("Reset defaults"))
 		
@@ -2006,6 +2058,10 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				self.blindscan_Ku_band_stop_frequency.value != self.Ku_band_freq_limits["high"] or \
 				self.blindscan_C_band_start_frequency.value != self.c_band_freq_limits["default_low"] or \
 				self.blindscan_C_band_stop_frequency.value != self.c_band_freq_limits["default_high"] or \
+				self.blindscan_C_band_5750_start_frequency.value != self.c_band_5750_freq_limits["default_low"] or \
+				self.blindscan_C_band_5750_stop_frequency.value != self.c_band_5750_freq_limits["default_high"] or \
+				self.blindscan_C_band_bandstack_start_frequency.value != self.c_band_bandstack_freq_limits["default_low"] or \
+				self.blindscan_C_band_bandstack_stop_frequency.value != self.c_band_bandstack_freq_limits["default_high"] or \
 				self.user_defined_lnb_scan and self.blindscan_user_defined_lnb_start_frequency.value != self.user_defined_lnb_lo_freq + self.tunerIfLimits["low"] or \
 				self.user_defined_lnb_scan and self.blindscan_user_defined_lnb_stop_frequency.value != self.user_defined_lnb_lo_freq + self.tunerIfLimits["high"] or \
 				self.user_defined_lnb_scan and self.blindscan_user_defined_lnb_inverted_start_frequency.value != self.user_defined_lnb_lo_freq - self.tunerIfLimits["high"] or \
@@ -2020,6 +2076,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		cur_orb_pos = self.getOrbPos()
 		self.is_c_band_scan = False
 		self.is_c_band_5750_scan = False
+		self.is_c_band_bandstack_scan = False
 		self.is_Ku_band_scan = False
 		self.user_defined_lnb_scan = False
 		self.user_defined_lnb_lo_freq = 0
@@ -2055,6 +2112,9 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				return True
 			elif lof == "c_band_5750":
 				self.is_c_band_5750_scan = True
+				return True
+			elif lof == "c_band_bandstack":
+				self.is_c_band_bandstack_scan = True
 				return True
 			elif lof == "user_defined" and currLnb.lofl.value == currLnb.lofh.value and currLnb.lofl.value > 5000 and currLnb.lofl.value < 30000:
 				if currLnb.lofl.value == self.circular_lnb_lo_freq and currLnb.lofh.value == self.circular_lnb_lo_freq and cur_orb_pos in (360, 560): # "circular_lnb" legacy support hack. For people using a "circular" LNB but that have their tuner set up as "user defined".
@@ -2158,38 +2218,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 					self["rotorstatus"].setText("")
 			except:
 				pass
-
-	def getSignalStats(self):
-		self.size = 0
-		self.signaltp = 0
-		if BOX_MODEL == "edision":
-			status = "/lib/modules/5.15.0/extra/avl6261.ko"
-			self.size = os.path.getsize(status)
-		try:
-			import time
-			time.sleep(.2)	
-			for x in range(10):
-				if self.feid == 0:
-					if BOX_MODEL != "edision":
-						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 100
-					if BOX_MODEL == "edision":
-						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 4456.21
-					if BOX_MODEL == "edision" and self.size > 100000:
-						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 1000
-				if self.feid == 1:
-					if BOX_MODEL != "edision":
-						self.signaltp = Dvbcsvb.fe.getSignalNoiseRatio() / 100
-					if BOX_MODEL == "edision":
-						self.signaltp = Dvbcsvb.fe.getSignalNoiseRatio() / 43.357 / 100
-		except:
-			pass
-		if self.signaltp != 0:
-			if self.signaltp < 0 or self.signaltp > 30: # Get rid of nonsense values
-				return 0
-			return ("%.2f" %(self.signaltp))
-		else:
-			return 0
-
 
 	def OrbToStr(self, orbpos):
 		if orbpos > 1800:
