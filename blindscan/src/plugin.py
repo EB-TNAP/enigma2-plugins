@@ -23,6 +23,8 @@ from .filters import TransponderFiltering # imported from Blindscan folder
 #used for the XML file
 from time import strftime, time
 import os
+import Dvbcsva #                          
+import Dvbcsvb #
 
 
 BOX_MODEL = "all"
@@ -2218,6 +2220,38 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 					self["rotorstatus"].setText("")
 			except:
 				pass
+
+	def getSignalStats(self):
+		self.size = 0
+		self.signaltp = 0
+		if BOX_MODEL == "edision":
+			status = "/lib/modules/5.15.0/extra/avl6261.ko"
+			self.size = os.path.getsize(status)
+		try:
+			import time
+			time.sleep(.2)	
+			for x in range(10):
+				if self.feid == 0:
+					if BOX_MODEL != "edision":
+						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 100
+					if BOX_MODEL == "edision":
+						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 4456.21
+					if BOX_MODEL == "edision" and self.size > 100000:
+						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 1000
+				if self.feid == 1:
+					if BOX_MODEL != "edision":
+						self.signaltp = Dvbcsvb.fe.getSignalNoiseRatio() / 100
+					if BOX_MODEL == "edision":
+						self.signaltp = Dvbcsvb.fe.getSignalNoiseRatio() / 43.357 / 100
+		except:
+			pass
+		if self.signaltp != 0:
+			if self.signaltp < 0 or self.signaltp > 30: # Get rid of nonsense values
+				return 0
+			return ("%.2f" %(self.signaltp))
+		else:
+			return 0
+
 
 	def OrbToStr(self, orbpos):
 		if orbpos > 1800:
