@@ -624,10 +624,18 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			if self.session.nav.getRecordings():
 				text += "\n"
 				text += _("Maybe the reason that recording is currently running.")
-			self.session.open(MessageBox, text, MessageBox.TYPE_ERROR)
+			# FIXED: Use openWithCallback instead of open to prevent modal dialog crash
+			# when called from non-modal context (e.g., during initialization)
+			self.session.openWithCallback(self.prepareFrontendErrorCallback, MessageBox, text, MessageBox.TYPE_ERROR, timeout=5)
 			return False
 		self.tuner = Tuner(self.frontend)
 		return True
+
+	def prepareFrontendErrorCallback(self, answer=None):
+		"""Callback for prepareFrontend error message - does nothing, just prevents crash"""
+		# This callback is needed because openWithCallback requires a callback function
+		# We don't need to do anything here as prepareFrontend already returns False
+		pass
 
 	def createConfig(self):
 		self.signaltp4 = 0
