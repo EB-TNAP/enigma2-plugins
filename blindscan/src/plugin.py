@@ -235,6 +235,14 @@ config.blindscan.user_defined_lnb_stop_freq = ConfigInteger(default=defaults["us
 config.blindscan.user_defined_lnb_inverted_start_freq = ConfigInteger(default=defaults["user_defined_lnb_inverted_start_freq"], limits=(0, 30000))
 config.blindscan.user_defined_lnb_inverted_stop_freq = ConfigInteger(default=defaults["user_defined_lnb_inverted_stop_freq"], limits=(0, 30000))
 
+# Per-NIM last-used orbital position — persisted so that when the plugin is opened
+# on one tuner, the other tuner's satellite dropdown defaults to what was last watched
+# on that tuner rather than falling back to a garbage or first-entry default.
+config.blindscan.last_nim_orbpos = ConfigSubsection()
+for _nim_idx in range(4):  # supports up to 4 NIM slots
+	setattr(config.blindscan.last_nim_orbpos, "nim%d" % _nim_idx,
+	        ConfigInteger(default=0, limits=(0, 3600)))
+
 class BlindscanState(Screen, ConfigListScreen):
 	skin = """
 	<screen position="center,center" size="1280,900" title="Satellite Blindscan">
@@ -679,6 +687,19 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		del self.service
 		del frontendData
 
+		# Persist orbital position for the active tuner so that the next time the plugin
+		# is opened on a different tuner, this tuner's satellite dropdown can default to
+		# the last satellite that was actually watched on it.
+		if self.getCurrentTuner is not None:
+			try:
+				_nim_cfg = getattr(config.blindscan.last_nim_orbpos,
+				                   "nim%d" % self.getCurrentTuner, None)
+				if _nim_cfg is not None:
+					_nim_cfg.value = defaultSat["orbpos"]
+					_nim_cfg.save()
+			except Exception as e:
+				print("[Blindscan][createConfig] failed to save last nim orbpos: %s" % str(e))
+
 		self.Ku_band_freq_limits = {"low": 10700, "high": 12750}
 		self.universal_lo_freq = {"low": 9750, "high": 10600}
 		self.c_band_freq_limits = {"low": 3000, "high": 4200, "default_low": 3400, "default_high": 4200}
@@ -732,15 +753,36 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				if n.type == nimmanager.nim_slots[root_id].type: # check if connected from a DVB-S to DVB-S2 Nim or vice versa
 					continue
 			nim_list.append((str(n.slot), n.friendly_full_description))
-		self.scan_nims = ConfigSelection(choices=nim_list)
+#		self.scan_nims = ConfigSelection(choices=nim_list)
+
+		_valid_nim_ids = [x[0] for x in nim_list]
+		_default_nim = str(self.getCurrentTuner) if (
+			self.getCurrentTuner is not None and
+			str(self.getCurrentTuner) in _valid_nim_ids
+		) else (_valid_nim_ids[0] if _valid_nim_ids else "")
+		self.scan_nims = ConfigSelection(choices=nim_list, default=_default_nim)
 
 		self.scan_satselection = []
 		for slot in nimmanager.nim_slots:
 			if slot.canBeCompatible("DVB-S"):
 				default_sat_pos = defaultSat["orbpos"]
 				if self.getCurrentTuner is not None and slot.slot != self.getCurrentTuner:
-					if len(nimmanager.getRotorSatListForNim(slot.slot)) and Lastrotorposition is not None and config.misc.lastrotorposition.value != 9999:
-						default_sat_pos = config.misc.lastrotorposition.value
+					try:
+						_nim_cfg = getattr(config.blindscan.last_nim_orbpos,
+						                   "nim%d" % slot.slot, None)
+						if _nim_cfg is not None and _nim_cfg.value != 0:
+							# Use the last orbital position saved for this specific NIM slot
+							default_sat_pos = _nim_cfg.value
+						elif len(nimmanager.getRotorSatListForNim(slot.slot)) and Lastrotorposition is not None and config.misc.lastrotorposition.value != 9999:
+							# Rotor tuner fallback: use last rotor position
+							default_sat_pos = config.misc.lastrotorposition.value
+						elif self.satList[slot.slot]:
+							# Last resort: use first configured satellite for this slot
+							default_sat_pos = self.satList[slot.slot][0][0]
+					except Exception as e:
+						print("[Blindscan][createConfig] error resolving default sat for slot %d: %s" % (slot.slot, str(e)))
+						if len(nimmanager.getRotorSatListForNim(slot.slot)) and Lastrotorposition is not None and config.misc.lastrotorposition.value != 9999:
+							default_sat_pos = config.misc.lastrotorposition.value
 				self.scan_satselection.append(getConfigSatlist(default_sat_pos, self.satList[slot.slot]))
 
 	def getSelectedSatIndex(self, v):
