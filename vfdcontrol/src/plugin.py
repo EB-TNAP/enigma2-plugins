@@ -118,7 +118,7 @@ class Channelnumber:
 					break
 				testlinet = SRVList[i]
 				testline = testlinet[0].split(":")
-				if testline[1] == "64":
+				if len(testline) > 1 and testline[1] == "64":
 					markersOffset = markersOffset + 1
 		chx = (chx - markersOffset) + 1
 		rx = MYCHANSEL.getBouquetNumOffset(myRoot)
