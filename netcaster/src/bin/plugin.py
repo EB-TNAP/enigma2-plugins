@@ -37,7 +37,7 @@ def Plugins(path, **kwargs):
 	return PluginDescriptor(
 		name=myname,
 		description="play Network and Internet Streams",
-		where=PluginDescriptor.WHERE_EXTENSIONSMENU,
+		where=PluginDescriptor.WHERE_PLUGINMENU,
 		icon="NETcaster.png",
 		fnc=main
 		)
