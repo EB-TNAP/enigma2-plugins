@@ -109,7 +109,10 @@ class Channelnumber:
 		else:
 			serviceHandler = eServiceCenter.getInstance()
 			mySSS = serviceHandler.list(myRoot)
-			SRVList = mySSS and mySSS.getContent("SN", True)
+			try:
+				SRVList = mySSS and mySSS.getContent("S", True)
+			except (UnicodeDecodeError, SystemError):
+				return chnr
 			for i in range(len(SRVList)):
 				if chx == i:
 					break
