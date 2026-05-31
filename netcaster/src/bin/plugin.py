@@ -34,13 +34,22 @@ def main(session, **kwargs):
 def Plugins(path, **kwargs):
 	global plugin_path
 	plugin_path = path
-	return PluginDescriptor(
-		name=myname,
-		description="play Network and Internet Streams",
-		where=PluginDescriptor.WHERE_PLUGINMENU,
-		icon="NETcaster.png",
-		fnc=main
-		)
+	return [
+		PluginDescriptor(
+			name=myname,
+			description="Internet radio and network stream player",
+			where=PluginDescriptor.WHERE_PLUGINMENU,
+			icon="NETcaster.png",
+			fnc=main
+		),
+		PluginDescriptor(
+			name=myname,
+			description="Internet radio and network stream player",
+			where=PluginDescriptor.WHERE_EXTENSIONSMENU,
+			icon="NETcaster.png",
+			fnc=main
+		),
+	]
 
 ###############################################################################
 
