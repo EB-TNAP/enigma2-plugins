@@ -311,6 +311,7 @@ class IMDB(Screen, HelpableScreen):
 		if self.hideBigPoster():
 			return
 
+		self.resetLabels()
 		safeRemove("/tmp/poster.jpg", "/tmp/poster-big.jpg")
 		if self.callbackNeeded:
 			self.close([self.callbackData, self.callbackGenre])
@@ -888,8 +889,9 @@ class IMDB(Screen, HelpableScreen):
 
 		if self.eventName:
 			self["statusbar"].setText(_("Query IMDb: %s") % self.eventName)
-			fetchurl = "https://www.imdb.com/find?s=tt&q=" + quoteEventName(self.eventName)
-#           print("[IMDB] getIMDB() Downloading Query", fetchurl)
+			first = self.eventName[0].lower() if self.eventName else 'a'
+			encoded = quoteEventName(self.eventName).replace('+', '%20')
+			fetchurl = "https://v3.sg.media-imdb.com/suggestion/x/%s/%s.json" % (first, encoded)
 			download = getPage(fetchurl, cookies=self.cookie)
 			download.addCallback(self.IMDBquery).addErrback(self.http_failed)
 
@@ -898,98 +900,47 @@ class IMDB(Screen, HelpableScreen):
 
 	def IMDBquery(self, response):
 		self["statusbar"].setText(_("IMDb Download completed"))
-		html = response.content
-		html = html.decode("utf8")
-		start = html.find('"titleResults":{"results":')
-		if start != -1:
-			searchresults = json.JSONDecoder().raw_decode(html, start + 26)[0]
-			self.resultlist = []
-			titles = {}
-			for x in searchresults:
-				series = get(x, 'seriesId')
-				if series:
-					if not config.plugins.imdb.showepisoderesults.value:
-						continue
-					if series in titles:
-						i = titles[series]
-						for t in titles:
-							if titles[t] >= i:
-								titles[t] += 1
-					else:
-						title = get(x, 'seriesNameText')
-						year = get(x, 'seriesReleaseText')
-						typ = config.plugins.imdb.showlongmenuinfo.value and get(x, 'seriesTypeText') or ""
-						if year or typ:
-							title += " ("
-							if year:
-								title += year
-							if typ:
-								if year:
-									title += "; "
-								title += typ
-							title += ")"
-						self.resultlist.append((title, series))
-						i = titles[series] = len(self.resultlist)
-					title = "- "
-					s = get(x, 'seriesSeasonText')
-					if s == "Unknown":  # not translated
-						s = ""
-					e = get(x, 'seriesEpisodeText')
-					if e == "Unknown":
-						e = ""
-				else:
-					title = s = e = ""
-					i = len(self.resultlist)
-				title += get(x, 'titleNameText')
-				year = get(x, 'titleReleaseText')
-				if config.plugins.imdb.showlongmenuinfo.value:
-					typ = not series and get(x, 'titleTypeText') or ""
-					cast = get(x, 'topCredits')
-				else:
-					typ = cast = ""
-				if year or typ or cast or s or e:
-					title += " ("
-					semicolon = False
-					if year:
-						title += year
-						semicolon = True
-					if typ:
-						if semicolon:
-							title += "; "
-						semicolon = True
-						title += typ
-					if s:
-						if semicolon:
-							title += "; "
-						semicolon = True
-						title += _("S") + s
-					if e:
-						if s:
-							title += " "
-						elif semicolon:
-							title += "; "
-						semicolon = True
-						title += _("E") + e
-					if cast:
-						if semicolon:
-							title += "; "
-						semicolon = True
-						title += six.ensure_str(", ".join(cast))
-					title += ")"
-				self.resultlist.insert(i, (title, get(x, 'id')))
-			Len = len(self.resultlist)
-			self["menu"].l.setList(self.resultlist)
-			if Len == 1:
-				self["key_green"].setText(_("Title Menu"))
-				self.downloadTitle(self.resultlist[0][0], self.resultlist[0][1])
-			elif Len > 1:
-				self.Page = 1
-				self.showMenu()
-			else:
-				self["detailslabel"].setText(_("No IMDb match."))
-				self["statusbar"].setText(_("No IMDb match:") + ' ' + self.eventName)
-		else:
+		try:
+			data = response.json()
+			results = data.get("d", [])
+		except Exception:
 			self["detailslabel"].setText(_("IMDb query failed!"))
+			return
+		self.resultlist = []
+		for x in results:
+			titleId = x.get("id", "")
+			if not titleId.startswith("tt"):
+				continue
+			if x.get("qid") == "tvEpisode" and not config.plugins.imdb.showepisoderesults.value:
+				continue
+			title = x.get("l", "")
+			year = x.get("y")
+			if config.plugins.imdb.showlongmenuinfo.value:
+				typ = x.get("q", "")
+				cast = x.get("s", "")
+				extras = []
+				if year:
+					extras.append(str(year))
+				if typ:
+					extras.append(typ)
+				if cast:
+					extras.append(six.ensure_str(cast))
+				if extras:
+					title += " (%s)" % "; ".join(extras)
+			elif year:
+				title += " (%s)" % year
+			self.resultlist.append((title, titleId))
+		Len = len(self.resultlist)
+		self["menu"].l.setList(self.resultlist)
+		if Len == 1:
+			self["key_green"].setText(_("Title Menu"))
+			self.downloadTitle(self.resultlist[0][0], self.resultlist[0][1])
+		elif Len > 1:
+			self.Page = 1
+			self.showMenu()
+		else:
+			self["detailslabel"].setText(_("No IMDb match."))
+			self["statusbar"].setText(_("No IMDb match:") + ' ' + self.eventName)
 
 	def http_failed(self, failure):
 		text = _("IMDb Download failed")
