@@ -1360,7 +1360,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			self.clockTimer.stop()
 		self.statusTimer.stop()
 		self.releaseFrontend()
-		self._fpRestoreDisplay()
 		self.session.nav.playService(self.session.postScanService)
 		self.close(False)
 
@@ -1429,21 +1428,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			print("[Blindscan][MemoryCleanup] Error clearing caches: %s" % str(e))
 			return 0
 
-	def _fpRestoreDisplay(self):
-		from time import strftime
-		t = strftime("%H:%M")
-		for dev in ("/dev/dbox/oled0", "/dev/dbox/lcd0"):
-			try:
-				open(dev, "w").write(t)
-			except OSError:
-				pass
-
 	def keyGo(self):
-		for dev in ("/dev/dbox/oled0", "/dev/dbox/lcd0"):
-			try:
-				open(dev, "w").write("SCAN")
-			except OSError:
-				pass
 		# Clear memory before starting a new scan
 		import gc
 		gc.collect()
@@ -2395,7 +2380,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 
 	def startScan(self, *retval):
 		if retval[0] == False:
-			self._fpRestoreDisplay()
 			return
 		tuner = nimmanager.nim_slots[self.feid].friendly_full_description
 		tlist = retval[1]
@@ -2765,8 +2749,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 
 	def startScanCallback(self, answer=True):
 		self.releaseFrontend()
-		self.saveFrequencyValues()
-		self._fpRestoreDisplay()
+		self.saveFrequencyValues()  
 		if answer:
 			print("######---1903--Blindscan--startScanCallback -- Answered")
 			self.session.nav.playService(self.session.postScanService)
