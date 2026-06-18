@@ -1582,7 +1582,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				del self.clockTimer
 				self.clockTimer = None
 				print("[Blindscan][doClock] Done")
-				if not self.scan_completed_done:
 				return
 			orb = self.total_list[self.running_count][0]
 			pol = self.total_list[self.running_count][1]
