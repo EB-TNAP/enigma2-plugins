@@ -246,7 +246,7 @@ for _nim_idx in range(4):  # supports up to 4 NIM slots
 	setattr(config.blindscan.last_nim_orbpos, "nim%d" % _nim_idx,
 	        ConfigInteger(default=0, limits=(0, 3600)))
 
-class BlindscanState(Screen, ConfigListScreen):
+class BlindscanState(ConfigListScreen, Screen):
 	skin = """
 	<screen position="center,center" size="1280,900" title="Satellite Blindscan" backgroundColor="background">
 		<eLabel position="0,0" size="1280,900" backgroundColor="background" zPosition="-1"/>
