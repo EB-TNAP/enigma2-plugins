@@ -117,35 +117,6 @@ def check_tnap_image():
 	except:
 		return False
 
-
-def _vfd_scan_mode(active):
-	try:
-		from Plugins.Extensions.VFDControl.plugin import setScanMode
-		setScanMode(active)
-		return
-	except Exception:
-		pass
-	# Fallback for boxes without vfdcontrol (e.g. osmio4k): write directly to VFD device.
-	# On scan start: write "SCAN" text. On scan end: force eDBoxLCD to push its pixel buffer
-	# back to hardware, immediately overwriting the "SCAN" text.
-	for lcd in ("/dev/dbox/lcd0", "/dev/dbox/oled0"):
-		if os.path.exists(lcd):
-			if active:
-				try:
-					open(lcd, "w").write("SCAN")
-				except Exception:
-					pass
-			else:
-				try:
-					from enigma import eDBoxLCD
-					inst = eDBoxLCD.getInstance()
-					if inst:
-						inst.update()
-				except Exception:
-					pass
-			break
-
-
 def root2gold(root):
 	if root < 0 or root > 0x3ffff:
 		return 0
@@ -1612,7 +1583,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				self.clockTimer = None
 				print("[Blindscan][doClock] Done")
 				if not self.scan_completed_done:
-					_vfd_scan_mode(False)
 				return
 			orb = self.total_list[self.running_count][0]
 			pol = self.total_list[self.running_count][1]
@@ -2132,7 +2102,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.bsTimer.stop()
 		if not self.frontend:
 			return
-		_vfd_scan_mode(True)
 		print("[Blindscan][asyncBlindScan] closing frontend and starting blindscan")
 		self.frontend.closeFrontend() # close because blindscan-s2 does not like to be open
 		self.blindscan_container = eConsoleAppContainer()
@@ -2195,14 +2164,12 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 					msg = _("No new transponders found! \n\nOnly transponders already listed in satellites.xml \nhave been found for those search parameters!")
 				if config.blindscan.lamedb.value:
 					msg = _("No new transponders found! \n\nOnly transponders already listed in lamedb channel file \nhave been found for those search parameters!")
-				_vfd_scan_mode(False)
 				self.session.openWithCallback(self.callbackNone, MessageBox, msg, MessageBox.TYPE_INFO, timeout=60)
 
 		else:
 			msg = _("No transponders were found for those search parameters!")
 			if val[0] == False:
 				msg = _("The blindscan run was cancelled by the user.")
-			_vfd_scan_mode(False)
 			self.session.openWithCallback(self.callbackNone, MessageBox, msg, MessageBox.TYPE_INFO, timeout=60)
 			self.tmp_tplist = []
 		import gc
@@ -2414,7 +2381,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 
 	def startScan(self, *retval):
 		if retval[0] == False:
-			_vfd_scan_mode(False)
 			return
 		tuner = nimmanager.nim_slots[self.feid].friendly_full_description
 		tlist = retval[1]
