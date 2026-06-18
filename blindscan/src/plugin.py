@@ -277,7 +277,8 @@ for _nim_idx in range(4):  # supports up to 4 NIM slots
 
 class BlindscanState(Screen, ConfigListScreen):
 	skin = """
-	<screen position="center,center" size="1280,900" title="Satellite Blindscan">
+	<screen position="center,center" size="1280,900" title="Satellite Blindscan" backgroundColor="background">
+		<eLabel position="0,0" size="1280,900" backgroundColor="background" zPosition="-1"/>
 		<widget name="progress" position="10,10" size="1260,120" font="Regular;24" />
 		<eLabel	position="10,140" size="1260,2" backgroundColor="grey"/>
 		<widget name="config" position="10,150" size="850,620" font="Regular;22" />
@@ -1610,7 +1611,8 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				del self.clockTimer
 				self.clockTimer = None
 				print("[Blindscan][doClock] Done")
-				_vfd_scan_mode(False)
+				if not self.scan_completed_done:
+					_vfd_scan_mode(False)
 				return
 			orb = self.total_list[self.running_count][0]
 			pol = self.total_list[self.running_count][1]
