@@ -494,6 +494,25 @@ class OrbitalPositionIdentifier:
 		self.aborted = True
 		self.finish(None)
 
+	def cancel(self):
+		# Stop the identifier and release hardware without firing finishedCallback.
+		# Used when the parent screen is closing and we must not trigger any
+		# further UI or scan-completion callbacks.
+		if self.finished:
+			return
+		self.finished = True
+		self.poll_timer.stop()
+		try:
+			self.poll_timer.callback.remove(self.poll)
+		except Exception:
+			pass
+		self.closeDemux()
+		self.frontend = None
+		self.raw_channel = None
+		self.tuner = None
+		self.candidates = []
+		verifyDebug("cancelled (no callback)")
+
 	def finish(self, result):
 		if self.finished:
 			return
@@ -1358,7 +1377,20 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.saveFrequencyValues()
 		if self.clockTimer:
 			self.clockTimer.stop()
+		self.bsTimer.stop()
 		self.statusTimer.stop()
+		if self.position_identifier is not None:
+			self.position_identifier.cancel()
+			self.position_identifier = None
+		if self.verify_screen is not None:
+			screen = self.verify_screen
+			self.verify_screen = None
+			self.verify_aborted = True
+			self.scan_completed_done = True
+			try:
+				screen.close()
+			except Exception:
+				pass
 		self.releaseFrontend()
 		self.session.nav.playService(self.session.postScanService)
 		self.close(False)
@@ -2865,11 +2897,14 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		return eDVBSatelliteEquipmentControl.getInstance().isRotorMoving()
 
 	def releaseFrontend(self):
+		if hasattr(self, 'tuner'):
+			self.tuner = None
 		if hasattr(self, 'frontend'):
 			del self.frontend
 			self.frontend = None
 		if hasattr(self, 'raw_channel'):
 			del self.raw_channel
+			self.raw_channel = None
 
 
 def BlindscanCallback(close, answer):
