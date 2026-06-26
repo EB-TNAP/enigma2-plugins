@@ -250,7 +250,7 @@ for _nim_idx in range(4):  # supports up to 4 NIM slots
 
 class BlindscanState(ConfigListScreen, Screen):
 	skin = """
-	<screen position="center,center" size="1280,900" title="Satellite Blindscan" backgroundColor="background">
+	<screen position="center,center" size="1280,900" title="Satellite Blindscan" backgroundColor="#000000">
 		<eLabel position="0,0" size="1280,900" backgroundColor="background" zPosition="-1"/>
 		<widget name="progress" position="10,10" size="1260,120" font="Regular;24" />
 		<eLabel	position="10,140" size="1260,2" backgroundColor="grey"/>
@@ -272,6 +272,7 @@ class BlindscanState(ConfigListScreen, Screen):
 
 	def __init__(self, session, progress, post_action, tp_list, finished=False):
 		Screen.__init__(self, session)
+		self.skinName = ["BlindscanStateTNAP"]
 		Screen.setTitle(self, _("                                           Blind scan state-" + BOX_NAME))
 		self.finished = finished
 		self["progress"] = Label()
@@ -800,6 +801,9 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.scan_aborted = False
 		self.stepTimer = eTimer()
 		self.stepTimer.callback.append(self.runNextStep)
+		self.elapsedTimer = eTimer()
+		self.elapsedTimer.callback.append(self.updateElapsed)
+		self.progress_base = ""
 		self.tmpstr = ""
 		self.start_time = time()
 		self.orb_pos = 0
@@ -1606,8 +1610,24 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		tuner = nimmanager.nim_slots[int(self.scan_nims.value)].friendly_full_description
 		init_progress = _("Preparing blind scan...")
 		init_action = _("Looking for available transponders.\n \n" + tuner + "\n \n")
+		self.progress_base = init_progress
+		# showiframe writes to the VIDEO plane (MPEG decoder output), not the OSD.
+		# During live TV the decoder overwrites it immediately, so we stop the service
+		# first. Blindscan acquires the frontend shortly after, so stopping here is
+		# equivalent — just slightly earlier than the implicit stop on frontend reserve.
+		# With the decoder idle, showiframe holds and prevents video bleed-through in
+		# the areas outside the OSD panel (transparent OSD regions show the video plane).
+		self.session.nav.stopService()
+		os.system("showiframe /usr/share/enigma2/black.mvi")
 		self.panel = self.session.openWithCallback(self.panelClosed, BlindscanState, init_progress, init_action, [])
 		self.blindscan_session = self.panel
+		# The scan panel fully covers this config screen for the whole multi-step scan.
+		# Hide it so the compositor stops blending a screen nobody can see. panelClosed()
+		# shows it again when control returns. Purely a resource optimization - no visible
+		# change, since the panel's opaque background already covers this screen's area.
+		self.hide()
+		# Live elapsed-time stopwatch on the progress line, updated once per second.
+		self.elapsedTimer.start(1000)
 
 		self.runStep()
 
@@ -1898,9 +1918,10 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			self.end_freq = self.blindscan_stop_frequency # Stop freq. key for ServiceScan
 		tuner = nimmanager.nim_slots[self.feid].friendly_full_description
 		tmpmes2 = _("Looking for available transponders.\n \n" + tuner + "\n \n")
+		self.progress_base = tmpmes
 		if self.panel:
-			self.panel["progress"].setText(tmpmes)
 			self.panel["post_action"].setText(tmpmes2)
+			self.updateElapsed()  # renders progress line + live stopwatch
 		self.blindscan_session = self.panel
 
 	def blindscanContainerClose(self, retval):
@@ -2044,7 +2065,30 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			return
 		self.runStep()
 
+	def updateElapsed(self):
+		# Live stopwatch appended to the end of the first progress line. Shows total
+		# elapsed blindscan time (mm:ss), independent of the current step. Driven by a
+		# 1s repeating timer started in doRun() and stopped in panelClosed().
+		if not self.panel:
+			return
+		elapsed = int(time() - self.start_time)
+		timestr = _("  [%d:%02d]") % (elapsed // 60, elapsed % 60)
+		base = self.progress_base
+		if "\n" in base:
+			first, rest = base.split("\n", 1)
+			text = first + timestr + "\n" + rest
+		else:
+			text = base + timestr
+		try:
+			self.panel["progress"].setText(text)
+		except Exception:
+			pass
+
 	def panelClosed(self, *args):
+		# Restore the config screen hidden in doRun(). Runs synchronously before any
+		# follow-on panel (results) is opened, so no flash of the config screen occurs.
+		self.show()
+		self.elapsedTimer.stop()
 		user_cancelled = bool(args) and args[0] == False
 		self.panel = None
 		self.blindscan_session = None
