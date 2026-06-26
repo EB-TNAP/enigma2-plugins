@@ -158,6 +158,7 @@ except:
 
 XML_BLINDSCAN_DIR = "/tmp"
 XML_FILE = None
+BLINDSCAN_STEP_SETTLE_MS = 200
 
 # _supportNimType is only used by vuplus hardware
 _supportNimType = {'AVL1208': '', 'AVL6222': '6222_', 'AVL6211': '6211_', 'BCM7356': 'bcm7346_', 'SI2166': 'si2166_'}
@@ -778,6 +779,10 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.status = ""
 		self.onChangedEntry = []
 		self.blindscan_session = None
+		self.panel = None
+		self.scan_aborted = False
+		self.stepTimer = eTimer()
+		self.stepTimer.callback.append(self.runNextStep)
 		self.tmpstr = ""
 		self.Sundtek_pol = ""
 		self.Sundtek_band = ""
@@ -1377,6 +1382,8 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.saveFrequencyValues()
 		if self.clockTimer:
 			self.clockTimer.stop()
+		if hasattr(self, 'stepTimer') and self.stepTimer:
+			self.stepTimer.stop()
 		self.bsTimer.stop()
 		self.statusTimer.stop()
 		if self.position_identifier is not None:
@@ -1589,40 +1596,17 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 					print("[Blindscan][doRun] add scan item: ", x, ", ", y, ", ", z)
 
 		self.max_count = len(self.total_list)
-		self.is_runable = True
 		self.running_count = 0
-		self.clockTimer = eTimer()
-		self.clockTimer.callback.append(self.doClock)
+		self.scan_aborted = False
 		self.start_time = time()
-		if self.SundtekScan:
-			if self.clockTimer:
-				self.clockTimer.stop()
-				del self.clockTimer
-				self.clockTimer = None
-			orb = self.total_list[self.running_count][0]
-			pol = self.total_list[self.running_count][1]
-			band = self.total_list[self.running_count][2]
-			self.prepareScanData(orb, pol, band, True)
-		else:
-			self.clockTimer.start(1000)
 
-	def doClock(self):
-		is_scan = False
-		if self.is_runable:
-			if self.running_count >= self.max_count:
-				self.clockTimer.stop()
-				del self.clockTimer
-				self.clockTimer = None
-				print("[Blindscan][doClock] Done")
-				return
-			orb = self.total_list[self.running_count][0]
-			pol = self.total_list[self.running_count][1]
-			band = self.total_list[self.running_count][2]
-			self.running_count = self.running_count + 1
-			print("[Blindscan][doClock] running status-[%d]: [%d][%s][%s]" % (self.running_count, orb[0], pol, band))
-			if self.running_count == self.max_count:
-				is_scan = True
-			self.prepareScanData(orb, pol, band, is_scan)
+		tuner = nimmanager.nim_slots[int(self.scan_nims.value)].friendly_full_description
+		init_progress = _("Preparing blind scan...")
+		init_action = _("Looking for available transponders.\n \n" + tuner + "\n \n")
+		self.panel = self.session.openWithCallback(self.panelClosed, BlindscanState, init_progress, init_action, [])
+		self.blindscan_session = self.panel
+
+		self.runStep()
 
 	def prepareScanData(self, orb, pol, band, is_scan):
 		print("[Blindscan][prepareScanData] started")
@@ -1929,10 +1913,10 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			self.end_freq = self.blindscan_stop_frequency # Stop freq. key for ServiceScan
 		tuner = nimmanager.nim_slots[self.feid].friendly_full_description
 		tmpmes2 = _("Looking for available transponders.\n \n" + tuner + "\n \n")
-		if is_scan:
-			self.blindscan_session = self.session.openWithCallback(self.blindscanSessionClose, BlindscanState, tmpmes, tmpmes2, [])
-		else:
-			self.blindscan_session = self.session.openWithCallback(self.blindscanSessionNone, BlindscanState, tmpmes, tmpmes2, [])
+		if self.panel:
+			self.panel["progress"].setText(tmpmes)
+			self.panel["post_action"].setText(tmpmes2)
+		self.blindscan_session = self.panel
 
 	def dataSundtekIsGood(self, data):
 		add_tp = False
@@ -1972,6 +1956,8 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		return add_tp
 
 	def blindscanContainerClose(self, retval):
+		if self.scan_aborted:
+			return
 		self.Sundtek_pol = ""
 		self.Sundtek_band = ""
 		self.offset = 0
@@ -2098,8 +2084,21 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 						parm.pls_mode = eDVBFrontendParametersSatellite.PLS_Gold
 						parm.pls_code = root2gold(parm.pls_code)
 					self.tmp_tplist.append(parm)
-		self.blindscan_session.close(True)
-		self.blindscan_session = None
+		try:
+			if self.blindscan_container is not None:
+				self.blindscan_container.sendCtrlC()
+				self.blindscan_container = None
+		except Exception:
+			pass
+		self.releaseFrontend()
+
+		if self.scan_aborted:
+			return
+
+		if self.running_count >= self.max_count:
+			self.finishScan()
+		else:
+			self.stepTimer.start(BLINDSCAN_STEP_SETTLE_MS, True)
 
 	def blindscanContainerAvail(self, str):
 		str = str.decode()
@@ -2116,45 +2115,61 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				if len(data) >= 6 and data[0] == 'OK':
 					self.blindscan_session["post_action"].setText(str)
 
-	def blindscanSessionNone(self, *val):
-		try: # Added to remove early exit crash when using TBS5925
-			self.blindscan_container.sendCtrlC()
-			self.blindscan_container = None
-		except:
-			pass
-		self.blindscan_session = None
-		self.releaseFrontend()
-		if val[0] == False:
-			self.tmp_tplist = []
-			self.running_count = self.max_count
-		self.is_runable = True
-
-	def asyncBlindScan(self):
-		self.bsTimer.stop()
-		if not self.frontend:
+	def runStep(self):
+		if self.scan_aborted:
 			return
-		print("[Blindscan][asyncBlindScan] closing frontend and starting blindscan")
-		self.frontend.closeFrontend() # close because blindscan-s2 does not like to be open
-		self.blindscan_container = eConsoleAppContainer()
-		self.blindscan_container.appClosed.append(self.blindscanContainerClose)
-		self.blindscan_container.dataAvail.append(self.blindscanContainerAvail)
-		self.blindscan_container.execute(self.cmd)
+		if self.running_count >= self.max_count:
+			return
+		orb = self.total_list[self.running_count][0]
+		pol = self.total_list[self.running_count][1]
+		band = self.total_list[self.running_count][2]
+		self.running_count += 1
+		is_scan = (self.running_count == self.max_count)
+		print("[Blindscan][runStep] %d/%d [%d][%s][%s]" % (self.running_count, self.max_count, orb[0], pol, band))
+		self.prepareScanData(orb, pol, band, is_scan)
 
-	def blindscanSessionClose(self, *val):
-		msg =""
+	def runNextStep(self):
+		self.stepTimer.stop()
+		if self.scan_aborted:
+			return
+		self.runStep()
+
+	def panelClosed(self, *args):
+		user_cancelled = bool(args) and args[0] == False
+		self.panel = None
+		self.blindscan_session = None
+		if not user_cancelled:
+			return
+		self.scan_aborted = True
+		self.stepTimer.stop()
+		try:
+			if self.blindscan_container is not None:
+				self.blindscan_container.sendCtrlC()
+				self.blindscan_container = None
+		except Exception:
+			pass
+		self.releaseFrontend()
+		self.tmp_tplist = []
+		import gc
+		gc.collect()
+		self.session.openWithCallback(self.callbackNone, MessageBox, _("The blindscan run was cancelled by the user."), MessageBox.TYPE_INFO, timeout=10)
+
+	def finishScan(self):
 		self.signaltp4 = 0
 		global XML_FILE
 		self["key_yellow"].setText("")
 		XML_FILE = None
 		self["actions3"].setEnabled(False)
 
-		self.blindscanSessionNone(val[0])
+		if self.panel:
+			self.panel.close()
+			self.panel = None
+			self.blindscan_session = None
 
 		if self.tmp_tplist is not None and self.tmp_tplist != []:
 			if not self.SundtekScan:
 				self.tmp_tplist = self.correctBugsCausedByDriver(self.tmp_tplist)
 
-			# Sync with or remove transponders that exist in satellites.xml
 			if config.blindscan.lamedb.value == True:
 				self.known_transponders = self.getLamedbTransponders(self.orb_position)
 				self.tmp_tplist = self.removeKnownTransponders(self.tmp_tplist, self.known_transponders)
@@ -2164,22 +2179,19 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			elif not config.blindscan.disable_sync_with_known_tps.value:
 				self.tmp_tplist = self.syncWithKnownTransponders(self.tmp_tplist, self.known_transponders)
 
-			# Remove any duplicate transponders from tplist
 			if not config.blindscan.disable_remove_duplicate_tps.value:
 				self.tmp_tplist = self.removeDuplicateTransponders(self.tmp_tplist)
 
-			# Filter off transponders on neighbouring satellites
 			if int(config.blindscan.filter_off_adjacent_satellites.value):
 				self.tmp_tplist = self.filterOffAdjacentSatellites(self.tmp_tplist, self.orb_position, int(config.blindscan.filter_off_adjacent_satellites.value))
 
 			if not config.blindscan.scan_mis.value:
 				self.tmp_tplist = [tp for tp in self.tmp_tplist if tp.is_id <= eDVBFrontendParametersSatellite.No_Stream_Id_Filter]
 
-			# Process transponders still in list
 			if self.tmp_tplist != []:
-				if hasattr(eDVBFrontendParametersSatellite, "No_T2MI_PLP_Id"): # if image is T2MI capable
+				if hasattr(eDVBFrontendParametersSatellite, "No_T2MI_PLP_Id"):
 					self.tmp_tplist = sorted(self.tmp_tplist, key=lambda tp: (tp.frequency, tp.is_id, tp.pls_mode, tp.pls_code, tp.t2mi_plp_id))
-				else: # if image is NOT T2MI capable
+				else:
 					self.tmp_tplist = sorted(self.tmp_tplist, key=lambda tp: (tp.frequency, tp.is_id, tp.pls_mode, tp.pls_code))
 				if config.blindscan.verify_orbital_position.value:
 					try:
@@ -2191,20 +2203,29 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 				else:
 					self.scanCompleted()
 			else:
+				msg = ""
 				if config.blindscan.dont_scan_known_tps.value:
 					msg = _("No new transponders found! \n\nOnly transponders already listed in satellites.xml \nhave been found for those search parameters!")
 				if config.blindscan.lamedb.value:
 					msg = _("No new transponders found! \n\nOnly transponders already listed in lamedb channel file \nhave been found for those search parameters!")
 				self.session.openWithCallback(self.callbackNone, MessageBox, msg, MessageBox.TYPE_INFO, timeout=60)
-
 		else:
 			msg = _("No transponders were found for those search parameters!")
-			if val[0] == False:
-				msg = _("The blindscan run was cancelled by the user.")
 			self.session.openWithCallback(self.callbackNone, MessageBox, msg, MessageBox.TYPE_INFO, timeout=60)
 			self.tmp_tplist = []
 		import gc
 		gc.collect()
+
+	def asyncBlindScan(self):
+		self.bsTimer.stop()
+		if not self.frontend:
+			return
+		print("[Blindscan][asyncBlindScan] closing frontend and starting blindscan")
+		self.frontend.closeFrontend() # close because blindscan-s2 does not like to be open
+		self.blindscan_container = eConsoleAppContainer()
+		self.blindscan_container.appClosed.append(self.blindscanContainerClose)
+		self.blindscan_container.dataAvail.append(self.blindscanContainerAvail)
+		self.blindscan_container.execute(self.cmd)
 
 	def scanCompleted(self):
 		# Guard against double invocation from error-recovery paths.
