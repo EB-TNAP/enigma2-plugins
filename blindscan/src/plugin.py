@@ -250,22 +250,46 @@ for _nim_idx in range(4):  # supports up to 4 NIM slots
 
 class BlindscanState(ConfigListScreen, Screen):
 	skin = """
-	<screen position="center,center" size="1280,900" title="Satellite Blindscan" backgroundColor="#000000">
-		<eLabel position="0,0" size="1280,900" backgroundColor="background" zPosition="-1"/>
-		<widget name="progress" position="10,10" size="1260,120" font="Regular;24" />
-		<eLabel	position="10,140" size="1260,2" backgroundColor="grey"/>
-		<widget name="config" position="10,150" size="850,620" font="Regular;22" />
-		<widget name="found" position="10,150" size="850,620" font="Regular;20" foregroundColor="#00ffc000" />
-		<eLabel	position="880,140" size="2,640" backgroundColor="grey"/>
-		<widget name="post_action" position="900,150" size="370,620" font="Regular;22" halign="center"/>
-		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/red.png" position="10,870" size="140,4" alphatest="on" />
-		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/green.png" position="170,870" size="140,4" alphatest="on" />
-		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/yellow.png" position="330,870" size="140,4" alphatest="on" />
-		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/blue.png" position="490,870" size="140,4" alphatest="on" />
-		<widget source="key_red" render="Label" position="10,810" size="140,60" font="Regular;24" halign="center"/>
-		<widget source="key_green" render="Label" position="170,810" size="140,60" font="Regular;24" halign="center"/>
-		<widget source="key_yellow" render="Label" position="330,810" size="140,60" font="Regular;24" halign="center"/>
-		<widget source="key_blue" render="Label" position="490,810" size="140,60" font="Regular;24" halign="center"/>
+	<screen position="center,center" size="1280,900" title="Satellite Blindscan" backgroundColor="black" flags="wfNoBorder">
+		<eLabel position="0,0" size="1280,900" backgroundColor="black" zPosition="-1"/>
+
+		<!-- outer frame: encloses header + body as one panel -->
+		<eLabel position="15,20"   size="1250,2" backgroundColor="white"/>
+		<eLabel position="15,789"  size="1250,2" backgroundColor="white"/>
+		<eLabel position="15,20"   size="2,771"  backgroundColor="white"/>
+		<eLabel position="1263,20" size="2,771"  backgroundColor="white"/>
+
+		<!-- status / summary text (header band) -->
+		<widget name="progress" position="38,34" size="1204,160" font="Regular;24" transparent="1"/>
+
+		<!-- box / model identifier (top-right of header) -->
+		<widget source="boxname" render="Label" position="848,30" size="400,36" font="Regular;28" halign="right" foregroundColor="#00909090" transparent="1"/>
+
+		<!-- header separator (dimmer than the frame) -->
+		<eLabel position="17,205" size="1246,1" backgroundColor="#00808080"/>
+
+		<!-- vertical divider: body region only, dimmer than the frame -->
+		<eLabel position="880,207" size="2,582" backgroundColor="#00808080"/>
+
+		<!-- left column: config when finished, found while scanning -->
+		<widget name="config" position="38,217" size="824,560" font="Regular;22" />
+		<widget name="found"  position="38,217" size="824,560" font="Regular;20" foregroundColor="#00ffc000" transparent="1"/>
+
+		<!-- right column: status / instructions -->
+		<widget name="post_action" position="900,217" size="348,560" font="Regular;22" halign="center" transparent="1"/>
+
+		<!-- footer hairline above the key bar -->
+		<eLabel position="15,801" size="1250,1" backgroundColor="#00808080"/>
+
+		<!-- color key bar (unchanged) -->
+		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/red.png"    position="10,870"  size="140,4" alphatest="on"/>
+		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/green.png"  position="170,870" size="140,4" alphatest="on"/>
+		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/yellow.png" position="330,870" size="140,4" alphatest="on"/>
+		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/blue.png"   position="490,870" size="140,4" alphatest="on"/>
+		<widget source="key_red"    render="Label" position="10,810"  size="140,60" font="Regular;34" halign="center" transparent="1"/>
+		<widget source="key_green"  render="Label" position="170,810" size="140,60" font="Regular;34" halign="center" transparent="1"/>
+		<widget source="key_yellow" render="Label" position="330,810" size="140,60" font="Regular;34" halign="center" transparent="1"/>
+		<widget source="key_blue"   render="Label" position="490,810" size="140,60" font="Regular;34" halign="center" transparent="1"/>
 	</screen>
 	"""
 
@@ -275,6 +299,7 @@ class BlindscanState(ConfigListScreen, Screen):
 		self.skinName = ["BlindscanStateTNAP"]
 		Screen.setTitle(self, _("                                           Blind scan state-" + BOX_NAME))
 		self.finished = finished
+		self["boxname"] = StaticText(BOX_NAME)
 		self["progress"] = Label()
 		self["progress"].setText(progress)
 		self["post_action"] = Label()
@@ -313,18 +338,23 @@ class BlindscanState(ConfigListScreen, Screen):
 		else:
 			self["post_action"].setText(post_action)
 			self["actions2"].setEnabled(False)
-			# Progress mode: the config list is unused, show the scrollable found list instead.
+# Progress mode: the config list is hidden and unused.
 			self["config"].hide()
-			# Scroll the interim found list. pageUp/pageDown are collision-free with the
-			# ConfigList navigation; up/down are bound too for convenience. If up/down do
-			# not scroll on a given image (ConfigList consuming them), pageUp/pageDown will.
+			# eActionMap dispatches LOWEST prio first; the first handler returning truthy
+			# wins. The hidden ConfigList binds up/down/pageUp/pageDown (NavigationActions,
+			# prio=1), so it outranks a higher-numbered scroller and moves an invisible
+			# selection - which is exactly the "locked" behaviour. Disable that map here,
+			# and keep the scroller below prio 1 as a fallback for forks that name it
+			# differently.
+			if "navigationActions" in self:
+				self["navigationActions"].setEnabled(False)
 			self["scrollactions"] = ActionMap(["NavigationActions", "DirectionActions"],
 			{
 				"pageUp": self["found"].pageUp,
 				"pageDown": self["found"].pageDown,
 				"up": self["found"].pageUp,
 				"down": self["found"].pageDown,
-			}, -3)
+			}, -1)
 
 		for t in tp_list:
 			cb = ConfigBoolean(default=True, descriptions={False: _("don't scan"), True: _("scan")})
@@ -439,7 +469,7 @@ def parseNITSection(section):
 
 class SatVerifyState(Screen):
 	skin = """
-	<screen position="center,center" size="700,260" title="Verifying satellite position">
+	<screen position="center,center" size="700,260" title="Verifying satellite position" flags="wfNoBorder">
 		<widget name="status" position="15,15" size="670,180" font="Regular;22"/>
 		<widget name="hint" position="15,205" size="670,40" font="Regular;18" foregroundColor="#00ffc000"/>
 	</screen>
@@ -743,7 +773,7 @@ class OrbitalPositionIdentifier:
 
 class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 	skin = """
-		<screen position="center,center" size="640,565" title="Blind scan">
+		<screen position="center,center" size="640,565" title="Blind scan" flags="wfNoBorder">
 			<widget name="rotorstatus" position="5,5" size="350,25" font="Regular;20" foregroundColor="#00ffc000"/>
 			<widget name="config" position="5,30" size="630,330" scrollbarMode="showOnDemand"/>
 			<ePixmap pixmap="skin_default/div-h.png" position="0,365" zPosition="1" size="640,2"/>
@@ -1230,7 +1260,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.userDefinedLnbInversionEntry = None
 
 		if nim.canBeCompatible("DVB-S"):
-			if self.startDishMovingIfRotorSat():
+			if self.isRotorSatSelected():
 				self.satelliteEntry = getConfigListEntry(_('Satellite'), self.scan_satselection[self.getSelectedSatIndex(index_to_scan)], _('Select the satellite you wish to search \n (Start Dish Motor After Changing Satellite)'))
 			else:
 				self.satelliteEntry = getConfigListEntry(_('Satellite'), self.scan_satselection[self.getSelectedSatIndex(index_to_scan)], _('Select the satellite you wish to search '))
@@ -1247,7 +1277,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			else:
 				self["introduction"].setText(_("Press Green/OK to start the scan"))
 
-			if self.startDishMovingIfRotorSat():
+			if self.isRotorSatSelected():
 				self.dishMotorEntry = getConfigListEntry(_("Start Dish Motor"), config.blindscan.motor_start, _('Set "Start Dish Motor" to "Yes" if you have changed the satellite position in this menu and wait until motor stops before starting Blindscan. ("Start Dish Motor" defaults to "No" after Dish Move Starts.)'))
 				self.list.append(self.dishMotorEntry)                
 			self.searchtypeEntry = getConfigListEntry(_("Search type"), config.blindscan.search_type, _('"channel scan" searches for channels and saves them to your receiver; "transponder scan" does a transponder search and displays the results allowing user to select some or all transponder. Both options save the results in satellites.xml format under /tmp'))
@@ -1330,16 +1360,21 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		print("[Blindscan][newConfig] cur is", cur)
 		if config.blindscan.motor_start.value == True:
 			self.createSetup()
-			orb_pos = self.getOrbPos()
-			tps = nimmanager.getTransponders(orb_pos)
-			if len(tps) >= 1:
-				transponder = (tps[0][1] // 1000, tps[0][2] // 1000, tps[0][3], tps[0][4], 2, orb_pos, tps[0][5], tps[0][6], tps[0][8], tps[0][9], eDVBFrontendParametersSatellite.No_Stream_Id_Filter, eDVBFrontendParametersSatellite.PLS_Gold, eDVBFrontendParametersSatellite.PLS_Default_Gold_Code, eDVBFrontendParametersSatellite.No_T2MI_PLP_Id, eDVBFrontendParametersSatellite.T2MI_Default_Pid)
-				idx_selected_sat = int(self.getSelectedSatIndex(self.scan_nims.value))
-				tmp_list = [self.satList[int(self.scan_nims.value)][self.scan_satselection[idx_selected_sat].index]]
-				orb = tmp_list[0][0]
-				self.orb_pos_now = 3600 - orb
-				self.orb_pos_now = self.orb_pos_now /10
-				self.tuner.tune(transponder)
+			# The user explicitly asked to move the dish. This is the only point
+			# (besides starting the scan) where it is acceptable to grab the
+			# frontend and stop the running service. startDishMovingIfRotorSat()
+			# allocates the tuner (setting self.tuner) and prepares the rotor.
+			if self.startDishMovingIfRotorSat():
+				orb_pos = self.getOrbPos()
+				tps = nimmanager.getTransponders(orb_pos)
+				if len(tps) >= 1:
+					transponder = (tps[0][1] // 1000, tps[0][2] // 1000, tps[0][3], tps[0][4], 2, orb_pos, tps[0][5], tps[0][6], tps[0][8], tps[0][9], eDVBFrontendParametersSatellite.No_Stream_Id_Filter, eDVBFrontendParametersSatellite.PLS_Gold, eDVBFrontendParametersSatellite.PLS_Default_Gold_Code, eDVBFrontendParametersSatellite.No_T2MI_PLP_Id, eDVBFrontendParametersSatellite.T2MI_Default_Pid)
+					idx_selected_sat = int(self.getSelectedSatIndex(self.scan_nims.value))
+					tmp_list = [self.satList[int(self.scan_nims.value)][self.scan_satselection[idx_selected_sat].index]]
+					orb = tmp_list[0][0]
+					self.orb_pos_now = 3600 - orb
+					self.orb_pos_now = self.orb_pos_now /10
+					self.tuner.tune(transponder)
 		if cur and (cur == self.tunerEntry or cur == self.satelliteEntry or cur == self.onlyUnknownTpsEntry or cur == self.userDefinedLnbInversionEntry or config.blindscan.motor_start.value == True):
 			self.createSetup()
 		self.setBlueText()
@@ -1611,14 +1646,6 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		init_progress = _("Preparing blind scan...")
 		init_action = _("Looking for available transponders.\n \n" + tuner + "\n \n")
 		self.progress_base = init_progress
-		# showiframe writes to the VIDEO plane (MPEG decoder output), not the OSD.
-		# During live TV the decoder overwrites it immediately, so we stop the service
-		# first. Blindscan acquires the frontend shortly after, so stopping here is
-		# equivalent — just slightly earlier than the implicit stop on frontend reserve.
-		# With the decoder idle, showiframe holds and prevents video bleed-through in
-		# the areas outside the OSD panel (transparent OSD regions show the video plane).
-		self.session.nav.stopService()
-		os.system("showiframe /usr/share/enigma2/black.mvi")
 		self.panel = self.session.openWithCallback(self.panelClosed, BlindscanState, init_progress, init_action, [])
 		self.blindscan_session = self.panel
 		# The scan panel fully covers this config screen for the whole multi-step scan.
@@ -2072,7 +2099,7 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		if not self.panel:
 			return
 		elapsed = int(time() - self.start_time)
-		timestr = _("  [%d:%02d]") % (elapsed // 60, elapsed % 60)
+		timestr = _("   Elapsed %d:%02d") % (elapsed // 60, elapsed % 60)
 		base = self.progress_base
 		if "\n" in base:
 			first, rest = base.split("\n", 1)
@@ -2775,6 +2802,28 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			self.session.nav.playService(self.session.postScanService)
 			self.close(True)
 
+
+	def isRotorSatSelected(self):
+		# Pure predicate: report whether the currently selected satellite is a
+		# rotor (motorized) satellite with usable transponders, WITHOUT touching
+		# the frontend. Used by createSetup() to decide which config entries to
+		# show. It must not allocate the tuner, stop the running service, or move
+		# the dish - those side effects only belong to an explicit, user-initiated
+		# dish move (see startDishMovingIfRotorSat / newConfig).
+		try:
+			orb_pos = self.getOrbPos()
+			feid = int(self.scan_nims.value)
+			rotorSatsForNim = nimmanager.getRotorSatListForNim(feid)
+			if len(rotorSatsForNim) < 1:
+				return False
+			if not any(sat[0] == orb_pos for sat in rotorSatsForNim):
+				return False
+			if len(nimmanager.getTransponders(orb_pos)) < 1:
+				return False
+			return True
+		except Exception as e:
+			print("[Blindscan][isRotorSatSelected] error: %s" % str(e))
+			return False
 
 	def startDishMovingIfRotorSat(self):
 		orb_pos = self.getOrbPos()
