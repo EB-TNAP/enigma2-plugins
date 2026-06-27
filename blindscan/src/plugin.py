@@ -286,10 +286,10 @@ class BlindscanState(ConfigListScreen, Screen):
 		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/green.png"  position="170,870" size="140,4" alphatest="on"/>
 		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/yellow.png" position="330,870" size="140,4" alphatest="on"/>
 		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/blue.png"   position="490,870" size="140,4" alphatest="on"/>
-		<widget source="key_red"    render="Label" position="10,810"  size="140,60" font="Regular;34" halign="center" transparent="1"/>
-		<widget source="key_green"  render="Label" position="170,810" size="140,60" font="Regular;34" halign="center" transparent="1"/>
-		<widget source="key_yellow" render="Label" position="330,810" size="140,60" font="Regular;34" halign="center" transparent="1"/>
-		<widget source="key_blue"   render="Label" position="490,810" size="140,60" font="Regular;34" halign="center" transparent="1"/>
+		<widget source="key_red"    render="Label" position="10,810"  size="140,60" font="Regular;27" halign="center" transparent="1"/>
+		<widget source="key_green"  render="Label" position="170,810" size="140,60" font="Regular;27" halign="center" transparent="1"/>
+		<widget source="key_yellow" render="Label" position="330,810" size="140,60" font="Regular;27" halign="center" transparent="1"/>
+		<widget source="key_blue"   render="Label" position="490,810" size="140,60" font="Regular;27" halign="center" transparent="1"/>
 	</screen>
 	"""
 
