@@ -94,8 +94,10 @@ def parseNITSection(section):
 class SatVerifyState(Screen):
 	skin = """
 	<screen position="center,center" size="700,260" title="Verifying satellite position" flags="wfNoBorder">
-		<widget name="status" position="15,15" size="670,180" font="Regular;22"/>
-		<widget name="hint" position="15,205" size="670,40" font="Regular;18" foregroundColor="#00ffc000"/>
+		<eLabel position="0,0" size="700,260" backgroundColor="white" zPosition="-2"/>
+		<eLabel position="3,3" size="694,254" backgroundColor="black" zPosition="-1"/>
+		<widget name="status" position="15,15" size="670,180" font="Regular;22" transparent="1"/>
+		<widget name="hint" position="15,205" size="670,40" font="Regular;18" foregroundColor="#00ffc000" transparent="1"/>
 	</screen>
 	"""
 
