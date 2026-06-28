@@ -286,10 +286,10 @@ class BlindscanState(ConfigListScreen, Screen):
 		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/green.png"  position="170,870" size="140,4" alphatest="on"/>
 		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/yellow.png" position="330,870" size="140,4" alphatest="on"/>
 		<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/blue.png"   position="490,870" size="140,4" alphatest="on"/>
-		<widget source="key_red"    render="Label" position="10,810"  size="140,60" font="Regular;27" halign="center" transparent="1"/>
-		<widget source="key_green"  render="Label" position="170,810" size="140,60" font="Regular;27" halign="center" transparent="1"/>
-		<widget source="key_yellow" render="Label" position="330,810" size="140,60" font="Regular;27" halign="center" transparent="1"/>
-		<widget source="key_blue"   render="Label" position="490,810" size="140,60" font="Regular;27" halign="center" transparent="1"/>
+		<widget source="key_red"    render="Label" position="10,810"  size="140,60" font="Regular;28" halign="center" transparent="1"/>
+		<widget source="key_green"  render="Label" position="170,810" size="140,60" font="Regular;28" halign="center" transparent="1"/>
+		<widget source="key_yellow" render="Label" position="330,810" size="140,60" font="Regular;28" halign="center" transparent="1"/>
+		<widget source="key_blue"   render="Label" position="490,810" size="140,60" font="Regular;28" halign="center" transparent="1"/>
 	</screen>
 	"""
 
@@ -2042,9 +2042,59 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		else:
 			self.stepTimer.start(BLINDSCAN_STEP_SETTLE_MS, True)
 
+	def _displayFrequency(self, parm):
+		# Read-only mirror of the frequency conversion in correctBugsCausedByDriver().
+		# The scan binary reports every transponder in Ku-band (9750 LO) IF format,
+		# so the interim "found so far" panel would otherwise show C-band / user-LNB
+		# carriers as Ku numbers. This returns the *display* frequency in kHz for the
+		# given transponder WITHOUT mutating it (the real conversion still happens once,
+		# post-scan, in correctBugsCausedByDriver()).
+		#
+		# The same high-limit guards are kept so that boxes whose binary already returns
+		# real frequencies (adjust_freq False: ustym, gbtrio4k, ...) are not converted a
+		# second time, exactly as the post-scan path behaves.
+		multiplier = 1000
+		freq = parm.frequency
+		if self.is_c_band_scan:
+			if freq > (self.c_band_freq_limits["high"] * multiplier):
+				freq = (self.c_band_lo_freq * multiplier) - (freq - (self.universal_lo_freq["low"] * multiplier))
+		elif self.is_c_band_5750_scan:
+			if freq > (self.c_band_5750_freq_limits["high"] * multiplier):
+				freq = (self.c_band_5750_lo_freq * multiplier) - (freq - (self.universal_lo_freq["low"] * multiplier))
+		elif self.is_c_band_bandstack_scan:
+			if freq > (self.c_band_bandstack_freq_limits["high"] * multiplier):
+				# Polarisation selects the LO, matching the post-scan path. Raw H/V is
+				# still present here (circular remap happens later), so test against V.
+				if parm.polarisation == eDVBFrontendParametersSatellite.Polarisation_Vertical:
+					freq = (self.c_band_lo_freq * multiplier) - (freq - (self.universal_lo_freq["low"] * multiplier))
+				else:
+					freq = (self.c_band_5750_lo_freq * multiplier) - (freq - (self.universal_lo_freq["low"] * multiplier))
+		elif self.user_defined_lnb_scan and self.adjust_freq:
+			if config.blindscan.user_defined_lnb_inversion.value:
+				freq = (self.user_defined_lnb_lo_freq * multiplier) - (freq - (self.universal_lo_freq["low"] * multiplier))
+			else:
+				freq = freq + ((self.user_defined_lnb_lo_freq - self.universal_lo_freq["low"]) * multiplier)
+		return freq
+
+	def _displayPolarisation(self, parm):
+		# Read-only mirror of the circular-polarisation remap in correctBugsCausedByDriver(),
+		# so the interim panel labels circular carriers as L/R like the final result does.
+		pol = parm.polarisation
+		cfg = int(config.blindscan.polarization.value)
+		if cfg == eDVBFrontendParametersSatellite.Polarisation_CircularRight:
+			pol = eDVBFrontendParametersSatellite.Polarisation_CircularRight
+		elif cfg == eDVBFrontendParametersSatellite.Polarisation_CircularLeft:
+			pol = eDVBFrontendParametersSatellite.Polarisation_CircularLeft
+		elif cfg == eDVBFrontendParametersSatellite.Polarisation_CircularRight + 2:
+			if pol == eDVBFrontendParametersSatellite.Polarisation_Horizontal:
+				pol = eDVBFrontendParametersSatellite.Polarisation_CircularLeft
+			else:
+				pol = eDVBFrontendParametersSatellite.Polarisation_CircularRight
+		return pol
+
 	def _formatFoundList(self):
 		# Render the transponders found so far for the interim (amber) panel.
-		# Display-only: sorted by frequency without mutating self.tmp_tplist.
+		# Display-only: sorted by *display* frequency without mutating self.tmp_tplist.
 		polmap = {eDVBFrontendParametersSatellite.Polarisation_Horizontal: "H",
 			eDVBFrontendParametersSatellite.Polarisation_CircularRight: "R",
 			eDVBFrontendParametersSatellite.Polarisation_CircularLeft: "L",
@@ -2059,8 +2109,10 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 			return _("Scanning... no transponders found yet.")
 		header = _("Found so far (scan still running): %d\n\n") % len(self.tmp_tplist)
 		lines = []
-		for p in sorted(self.tmp_tplist, key=lambda tp: tp.frequency):
-			line = "%g%s %d %s %s" % (p.frequency / 1000.0, polmap.get(p.polarisation, ""), p.symbol_rate // 1000, sysmap.get(p.system, ""), qammap.get(p.modulation, ""))
+		for p in sorted(self.tmp_tplist, key=lambda tp: self._displayFrequency(tp)):
+			disp_freq = self._displayFrequency(p)
+			disp_pol = self._displayPolarisation(p)
+			line = "%g%s %d %s %s" % (disp_freq / 1000.0, polmap.get(disp_pol, ""), p.symbol_rate // 1000, sysmap.get(p.system, ""), qammap.get(p.modulation, ""))
 			if p.is_id > eDVBFrontendParametersSatellite.No_Stream_Id_Filter:
 				line += " MIS %d" % p.is_id
 			if p.pls_code > 0:
