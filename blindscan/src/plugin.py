@@ -27,9 +27,10 @@ import Dvbcsva
 import Dvbcsvb
 from . import bsconfig
 from .bsconfig import (BOX_MODEL, BOX_NAME, check_tnap_image, root2gold,
-                       getMisPlsValue, getAdapterFrontend,
+                       getMisPlsValue,
                        XML_BLINDSCAN_DIR, BLINDSCAN_STEP_SETTLE_MS,
                        _supportNimType, _unsupportedNims, _blindscans2Nims)
+from .bscommands import build_scan_command, _HardwareNotSupported, _ToolNotFound
 
 try:
 	Lastrotorposition = config.misc.lastrotorposition
@@ -1570,135 +1571,37 @@ class Blindscan(ConfigListScreen, Screen, TransponderFiltering):
 		self.tmpstr = ""
 
 		not_support_text = _("It seems manufacturer does not support blind scan for this tuner.")
-		if tunername in _blindscans2Nims:
-			tools = "/usr/bin/blindscan-s2"
-			if os.path.exists(tools):
-				if tunername == "TBS-5925":
-					cmd = "blindscan-s2 -b -s %d -e %d -t %d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.step_mhz_tbs5925.value)
-				else:
-					cmd = "blindscan-s2 -b -s %d -e %d" % (temp_start_int_freq, temp_end_int_freq)
-				cmd += getAdapterFrontend(self.feid, tunername)
-				if pol == "horizontal":
-					cmd += " -H"
-				elif pol == "vertical":
-					cmd += " -V"
-				if self.is_c_band_scan:
-					cmd += " -l %d" % self.c_band_lo_freq # tested by el bandito with TBS-5925 and working
-##################
-
-				elif tab_hilow[band]:
-					cmd += " -l %d -2" % self.universal_lo_freq["high"] # on high band enable 22KHz tone
-				else:
-					cmd += " -l %d" % self.universal_lo_freq["low"]
-				#self.frontend.closeFrontend() # close because blindscan-s2 does not like to be open
-				self.cmd = cmd
-				self.bsTimer.stop()
-				self.bsTimer.start(6000, True)
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-		elif BOX_NAME in ("mbtwinplus", "mbmicro", "mbmicrov2"):
-			tools = "/usr/bin/ceryon_blindscan"
-			if os.path.exists(tools):
-				cmd = "ceryon_blindscan %d %d %d %d %d %d %d %d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid))
-				cmd += " %d" % self.is_c_band_scan
-####################
-
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-				return
-		elif BOX_MODEL == "vuplus":
-			if BOX_NAME in ("uno", "duo2", "solo2", "solose", "ultimo", "solo4k", "ultimo4k", "zero4k"):
-				tools = "/usr/bin/%s" % self.binName
-				if os.path.exists(tools):
-					try:
-						cmd = "%s %d %d %d %d %d %d %d %d" % (self.binName, temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid))
-					except:
-						self.session.open(MessageBox, _("Scan unknown error!"), MessageBox.TYPE_ERROR)
-						return
-				else:
-					self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-					return
-			else:
-				self.session.open(MessageBox, not_support_text, MessageBox.TYPE_WARNING)
-				return
-		elif BOX_MODEL.startswith("xtrend"):
-			if BOX_NAME.startswith("et9") or BOX_NAME.startswith("et6") or BOX_NAME.startswith("et5"):
-				tools = "/usr/bin/avl_xtrend_blindscan"
-				if os.path.exists(tools):
-					cmd = "avl_xtrend_blindscan %d %d %d %d %d %d %d %d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid)) # commented out by Huevos cmd = "avl_xtrend_blindscan %d %d %d %d %d %d %d %d" % (self.blindscan_start_frequency.value/1000000, self.blindscan_stop_frequency.value/1000000, self.blindscan_start_symbol.value, self.blindscan_stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid))
-				else:
-					self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-					return
-			else:
-				self.session.open(MessageBox, not_support_text, MessageBox.TYPE_WARNING)
-				return
-		elif BOX_MODEL.startswith("edision"):
-			tools = "/usr/bin/blindscan"
-			if os.path.exists(tools):
-				cmd = "blindscan --start=%d --stop=%d --min=%d --max=%d --slot=%d --i2c=%d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, self.feid, self.getNimSocket(self.feid))
-				if tab_pol[pol]:
-					cmd += " --vertical"
-				if self.is_c_band_scan:
-					cmd += " --cband"
-################
-
-				elif tab_hilow[band]:
-					cmd += " --high"
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-				return
-		elif BOX_NAME == "lunix4k":
-			tools = "/usr/bin/qviart_blindscan_72604"
-			if os.path.exists(tools):
-				cmd = "qviart_blindscan_72604 %d %d %d %d %d %d %d %d %d %d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid), self.is_c_band_scan, orb[0])
-###################
-
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-				return
-		elif BOX_NAME == "dual":
-			tools = "/usr/bin/qviart_blindscan"
-			if os.path.exists(tools):
-				cmd = "qviart_blindscan %d %d %d %d %d %d %d %d %d %d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid), self.is_c_band_scan, orb[0])
-################
-
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-				return
-		elif BOX_NAME.startswith("ustym"):
-			tools = "/usr/bin/uclan-blindscan"
-			if os.path.exists(tools):
-				cmd = "uclan-blindscan %d %d %d %d %d %d %d %d %d %d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid), self.is_c_band_scan, orb[0])
-				self.adjust_freq = False
-###################
-
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-				return
-		elif BOX_NAME.startswith("sf8008"): # Set a fake orbit of 2100
-			tools = "/usr/bin/octagon-blindscan"
-			if os.path.exists(tools):
-				cmd = "octagon-blindscan %d %d %d %d %d %d %d %d %d 2100" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid), self.is_c_band_scan)
-##############
-
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
-				return
-		elif BOX_MODEL == "gigablue":
-			tools = "/usr/bin/gigablue_blindscan"
-			if os.path.exists(tools):
-				cmd = "gigablue_blindscan %d %d %d %d %d %d %d %d" % (temp_start_int_freq, temp_end_int_freq, config.blindscan.start_symbol.value, config.blindscan.stop_symbol.value, tab_pol[pol], tab_hilow[band], self.feid, self.getNimSocket(self.feid))
-				if BOX_NAME == "gbtrio4k":
-					cmd += " %d" % self.is_c_band_scan
-					cmd += " %d" % orb[0]
-					self.adjust_freq = False
-######################
-
-			else:
-				self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % tools, MessageBox.TYPE_ERROR)
+		bin_name = getattr(self, 'binName', "")
+		try:
+			cmd, async_cmd, adjust_freq_override = build_scan_command(
+				tunername=tunername,
+				bin_name=bin_name,
+				temp_start_int_freq=temp_start_int_freq,
+				temp_end_int_freq=temp_end_int_freq,
+				pol=pol, band=band, tab_pol=tab_pol, tab_hilow=tab_hilow,
+				feid=self.feid, nim_socket=self.getNimSocket(self.feid),
+				is_c_band_scan=self.is_c_band_scan,
+				c_band_lo_freq=self.c_band_lo_freq,
+				universal_lo_freq=self.universal_lo_freq,
+				orb=orb[0],
+				start_symbol=config.blindscan.start_symbol.value,
+				stop_symbol=config.blindscan.stop_symbol.value,
+				step_mhz_tbs5925=config.blindscan.step_mhz_tbs5925.value,
+			)
+		except _HardwareNotSupported:
+			self.session.open(MessageBox, not_support_text, MessageBox.TYPE_WARNING)
+			return
+		except _ToolNotFound as e:
+			self.session.open(MessageBox, _("Not found blind scan utility '%s'!") % e.tool, MessageBox.TYPE_ERROR)
+			if e.abort:
 				return
 		else:
-			self.session.open(MessageBox, not_support_text, MessageBox.TYPE_WARNING)
+			if adjust_freq_override is not None:
+				self.adjust_freq = adjust_freq_override
+			if async_cmd:
+				self.cmd = async_cmd
+				self.bsTimer.stop()
+				self.bsTimer.start(6000, True)
 		print("[Blindscan][prepareScanData] prepared command: [%s]" % (cmd))
 
 		self.thisRun = [] # used to check result corresponds with values used above
