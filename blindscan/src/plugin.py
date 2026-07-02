@@ -23,28 +23,60 @@ from .bsverify import BlindscanVerifyMixin
 
 
 class Blindscan(BlindscanUIMixin, BlindscanEngineMixin, BlindscanVerifyMixin, BlindscanResultsMixin, ConfigListScreen, Screen, TransponderFiltering):
+	# Self-contained FHD layout (skin-independent-screens.md pattern):
+	# wfNoBorder + own opaque background, Title drawn from the Title source,
+	# clock/date from global.CurrentTime, all colors inline hex, no <panel>
+	# includes, no external pixmaps (color strips are plain eLabels).
 	skin = """
-		<screen position="center,center" size="640,565" title="Blind scan" flags="wfNoBorder">
-			<widget name="rotorstatus" position="5,5" size="350,25" font="Regular;20" foregroundColor="#00ffc000"/>
-			<widget name="config" position="5,30" size="630,330" scrollbarMode="showOnDemand"/>
-			<ePixmap pixmap="skin_default/div-h.png" position="0,365" zPosition="1" size="640,2"/>
-			<widget name="description" position="5,370" size="630,125" font="Regular;19" foregroundColor="#00ffc000"/>
-			<ePixmap pixmap="skin_default/div-h.png" position="0,495" zPosition="1" size="640,2"/>
-			<widget name="introduction" position="0,500" size="640,20" font="Regular;18" foregroundColor="green" halign="center"/>
-			<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/red.png" position="0,560" size="160,2" alphatest="on"/>
-			<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/green.png" position="160,560" size="160,2" alphatest="on"/>
-			<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/yellow.png" position="320,560" size="160,2" alphatest="on" />
-			<ePixmap pixmap="/usr/lib/enigma2/python/Plugins/SystemPlugins/Blindscan/images/blue.png" position="480,560" size="160,2" alphatest="on" />
-			<widget name="key_red" position="0,530" zPosition="2" size="160,20" font="Regular;18" halign="center" valign="center" backgroundColor="background" foregroundColor="white" transparent="1"/>
-			<widget name="key_green" position="160,530" zPosition="2" size="160,20" font="Regular;18" halign="center" valign="center" backgroundColor="background" foregroundColor="white" transparent="1"/>
-			<widget name="key_yellow" position="320,530" zPosition="2" size="160,20" font="Regular;18" halign="center" valign="center" backgroundColor="background" foregroundColor="white" transparent="1" />
-			<widget name="key_blue" position="480,530" zPosition="2" size="160,20" font="Regular;18" halign="center" valign="center" backgroundColor="background" foregroundColor="white" transparent="1" />
-			<widget text="LOCK" source="Frontend" render="FixedLabel" zPosition="0" position="500,5" size="160,30" font="Regular;25" foregroundColor="green" transparent="1">
-				<convert type="FrontendInfo">LOCK</convert>
-				<convert type="ConditionalShowHide"/>
-			</widget>
-		</screen>
-		"""
+	<screen name="BlindscanTNAP" position="0,0" size="1920,1080" title="Blind scan" flags="wfNoBorder" backgroundColor="#00000000" resolution="1920,1080">
+		<eLabel position="0,0" size="1920,1080" backgroundColor="#00000000" zPosition="-2"/>
+
+		<!-- outer frame: encloses header + body as one panel -->
+		<eLabel position="20,20"   size="1880,2" backgroundColor="#00f0f0f0"/>
+		<eLabel position="20,948"  size="1880,2" backgroundColor="#00f0f0f0"/>
+		<eLabel position="20,20"   size="2,930"  backgroundColor="#00f0f0f0"/>
+		<eLabel position="1898,20" size="2,930"  backgroundColor="#00f0f0f0"/>
+
+		<!-- header band: title + rotor status left, LOCK + clock/date right -->
+		<widget source="Title" render="Label" position="45,34" size="1330,54" font="Regular;40" transparent="1" valign="center" halign="left" noWrap="1" foregroundColor="#00f0f0f0"/>
+		<widget name="rotorstatus" position="45,94" size="900,36" font="Regular;28" foregroundColor="#00ffc000" transparent="1"/>
+		<widget text="LOCK" source="Frontend" render="FixedLabel" position="1400,36" size="130,50" font="Regular;38" valign="center" halign="center" foregroundColor="#0056c856" transparent="1" zPosition="2">
+			<convert type="FrontendInfo">LOCK</convert>
+			<convert type="ConditionalShowHide"/>
+		</widget>
+		<widget source="global.CurrentTime" render="Label" position="1560,30" size="310,52" font="Regular;44" halign="right" transparent="1" foregroundColor="#00f0f0f0">
+			<convert type="ClockToText">Format:%H:%M</convert>
+		</widget>
+		<widget source="global.CurrentTime" render="Label" position="1300,88" size="570,34" font="Regular;26" halign="right" transparent="1" foregroundColor="#00909090">
+			<convert type="ClockToText">Format:%A %e %B %Y</convert>
+		</widget>
+
+		<!-- header separator (dimmer than the frame) -->
+		<eLabel position="22,140" size="1876,1" backgroundColor="#00808080"/>
+
+		<!-- body: config list left, contextual help right -->
+		<widget name="config" position="45,158" size="1180,660" font="Regular;28" itemHeight="44" scrollbarMode="showOnDemand" transparent="0" backgroundColor="#00000000" foregroundColor="#00f0f0f0" backgroundColorSelected="#06303240" foregroundColorSelected="#00fcc000"/>
+
+		<!-- vertical divider: body region only, dimmer than the frame -->
+		<eLabel position="1255,158" size="2,660" backgroundColor="#00808080"/>
+
+		<widget name="description" position="1285,158" size="590,660" font="Regular;28" foregroundColor="#00ffc000" transparent="1"/>
+
+		<!-- footer hairline above the introduction line -->
+		<eLabel position="22,842" size="1876,1" backgroundColor="#00808080"/>
+		<widget name="introduction" position="45,866" size="1830,50" font="Regular;32" foregroundColor="#0056c856" halign="center" valign="center" transparent="1"/>
+
+		<!-- color key bar: self-contained eLabel strips, no pixmaps -->
+		<widget name="key_red"    position="40,968"  size="220,56" font="Regular;30" halign="center" valign="center" foregroundColor="#00f0f0f0" transparent="1"/>
+		<widget name="key_green"  position="300,968" size="220,56" font="Regular;30" halign="center" valign="center" foregroundColor="#00f0f0f0" transparent="1"/>
+		<widget name="key_yellow" position="560,968" size="220,56" font="Regular;30" halign="center" valign="center" foregroundColor="#00f0f0f0" transparent="1"/>
+		<widget name="key_blue"   position="820,968" size="220,56" font="Regular;30" halign="center" valign="center" foregroundColor="#00f0f0f0" transparent="1"/>
+		<eLabel position="40,1030"  size="220,4" backgroundColor="#00ff4a3c"/>
+		<eLabel position="300,1030" size="220,4" backgroundColor="#0056c856"/>
+		<eLabel position="560,1030" size="220,4" backgroundColor="#00F9C731"/>
+		<eLabel position="820,1030" size="220,4" backgroundColor="#00879ce1"/>
+	</screen>
+	"""
 	def __init__(self, session):
 		# Check if running on a TNAP image
 		if not check_tnap_image():
@@ -54,7 +86,7 @@ class Blindscan(BlindscanUIMixin, BlindscanEngineMixin, BlindscanVerifyMixin, Bl
 		Screen.__init__(self, session)
 		self.setup_title = _("Blind Scan (TNAP-MOD)") + " for " + BOX_MODEL + " " + BOX_NAME
 		Screen.setTitle(self, self.setup_title)
-		self.skinName = "Blindscan"
+		self.skinName = ["BlindscanTNAP"]
 		self.session.postScanService = self.session.nav.getCurrentlyPlayingServiceOrGroup()
 
 		self["description"] = Label("")
