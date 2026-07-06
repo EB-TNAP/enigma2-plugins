@@ -35,6 +35,12 @@ msgid ""
 "You must use the power adapter."
 msgstr ""
 
+msgid "                                           Blind scan state-"
+msgstr ""
+
+msgid "   Elapsed %d:%02d"
+msgstr ""
+
 msgid "   Starting Sundtek hardware blind scan."
 msgstr ""
 
@@ -50,6 +56,9 @@ msgstr "Kanavahaku etsii kanavia ja tallentaa ne vastaanottimeen. Tallennus XML-
 #, fuzzy
 msgid "\"scan for channels\" searches for channels and saves them to your receiver; \"Save to XML\" does a transponder search and saves the results in satellites.xml format and stores it in /tmp"
 msgstr "Kanavahaku etsii kanavia ja tallentaa ne vastaanottimeen. Tallennus XML-tiedostoon tallentaa transponderit satellites.xml tiedostoon. Molemmat vaihtoehdot tekevät transponderihaun."
+
+msgid "%.1fW - %s(db)"
+msgstr ""
 
 #, python-format
 msgid "%d transponder(s) found"
@@ -70,7 +79,13 @@ msgstr ""
 msgid "Accuracy (higher is better)"
 msgstr ""
 
+msgid "After the blind scan the strongest found transponders are tuned and the NIT broadcast by the satellite is read to confirm the dish really is pointing at the selected satellite. Recommended for motorised dishes, as DiSEqC rotors give no position feedback."
+msgstr ""
+
 msgid "Auto / Manual"
+msgstr ""
+
+msgid "Blind Scan (TNAP-MOD)"
 msgstr ""
 
 msgid "Blind scan"
@@ -82,6 +97,9 @@ msgstr ""
 #, fuzzy
 msgid "Blind scan state"
 msgstr "Transponderihaku (blind scan)"
+
+msgid "Blindscan is not supported for this satellite "
+msgstr ""
 
 msgid "Blindscan is not supported in "
 msgstr ""
@@ -136,6 +154,12 @@ msgstr ""
 msgid "Disable sync with known transponders"
 msgstr "Vain tuntemattomat transponderit"
 
+msgid "Discard scan results"
+msgstr ""
+
+msgid "Don't scan lamedb transponders"
+msgstr ""
+
 #
 msgid "Exit"
 msgstr "Poistu"
@@ -158,6 +182,9 @@ msgstr ""
 msgid "Hardware type"
 msgstr ""
 
+msgid "If you select \"no\" the scan will skip transponders that use Multiple Input Stream technology, which speeds up scanning in regions where these are not used."
+msgstr ""
+
 #, fuzzy
 msgid "If you select \"yes\" all channels on the satellite being search will be deleted before starting the current search, yes (keep feeds) means the same but hold all feed services/transponders."
 msgstr "Jos valitset \"kyllä\" kaikki satelliitin kanavat poistetaan ennen hakua"
@@ -166,10 +193,16 @@ msgstr "Jos valitset \"kyllä\" kaikki satelliitin kanavat poistetaan ennen haku
 msgid "If you select \"yes\" the scan will only save channels that are not encrypted; \"no\" will find encrypted and non-encrypted channels."
 msgstr "Jos valitset \"kyllä\" vain salaamattomat kanavat haetaan; \"ei\" kaikki kanavat haetaan"
 
+msgid "If you select \"yes\" the scan will only search transponders not listed in lamedb channel file"
+msgstr ""
+
 msgid "If you select \"yes\" the scan will only search transponders not listed in satellites.xml"
 msgstr "Jos valitset \"kyllä\" vain transponderit joita ei ole satellites.xml listalla haetaan"
 
 msgid "It seems manufacturer does not support blind scan for this tuner."
+msgstr ""
+
+msgid "Keep results as %s"
 msgstr ""
 
 msgid "LNB inversion"
@@ -230,6 +263,15 @@ msgstr "Polarisaatio"
 msgid "Polarisation, select horizontal, vertical or both."
 msgstr ""
 
+msgid "Preparing blind scan..."
+msgstr ""
+
+msgid "Preparing to verify dish position for %s ..."
+msgstr ""
+
+msgid "Press EXIT to skip verification"
+msgstr ""
+
 msgid "Press Green/OK to start the scan"
 msgstr "Paina vihreä/OK aloittaaksesi haun"
 
@@ -241,7 +283,16 @@ msgstr "Paina vihreä/OK aloittaaksesi haun"
 msgid "Press green to start service searching."
 msgstr "Paina vihreä/OK aloittaaksesi haun"
 
+msgid "Relabel results to %s"
+msgstr ""
+
+msgid "Reset defaults"
+msgstr ""
+
 msgid "Restore defaults"
+msgstr ""
+
+msgid "Results relabelled to %s (identified via NIT)."
 msgstr ""
 
 msgid "Rotor: "
@@ -256,10 +307,28 @@ msgstr "Satelliitti"
 msgid "Satellite blind scan"
 msgstr "Satelliitti"
 
+msgid "Satellite position could not be verified (no usable NIT data)."
+msgstr ""
+
+msgid "Satellite position not verified (skipped)."
+msgstr ""
+
+msgid "Satellite position verification failed (internal error)."
+msgstr ""
+
+msgid "Satellite position verified via NIT: %s."
+msgstr ""
+
 msgid "Scan"
 msgstr ""
 
+msgid "Scan MIS transponders"
+msgstr ""
+
 msgid "Scan Step in MHz(TBS5925)"
+msgstr ""
+
+msgid "Scan results discarded."
 msgstr ""
 
 msgid "Scan satellites for new transponders"
@@ -280,6 +349,9 @@ msgstr "Lopetus symbolinopeus"
 #, fuzzy
 msgid "Scan unknown error!"
 msgstr "Vain tuntemattomat transponderit"
+
+msgid "Scanning... no transponders found yet."
+msgstr ""
 
 #, fuzzy, python-format
 msgid ""
@@ -323,6 +395,9 @@ msgstr ""
 msgid "Select the satellite you wish to search"
 msgstr "Valitse satelliitti"
 
+msgid "Select the satellite you wish to search "
+msgstr ""
+
 msgid ""
 "Select transponders and press green to scan.\n"
 "Press yellow to select all transponders and blue to deselect all."
@@ -343,11 +418,17 @@ msgstr ""
 msgid "Service searching will start AUTOMATICALLY. To change this press green."
 msgstr ""
 
+msgid "Set \"Start Dish Motor\" to \"Yes\" if you have changed the satellite position in this menu and wait until motor stops before starting Blindscan. (\"Start Dish Motor\" defaults to \"No\" after Dish Move Starts.)"
+msgstr ""
+
 msgid "Smaller steps takes longer but scan is more thorough"
 msgstr ""
 
 msgid "Sorry, this tuner is in use."
 msgstr "Viritin on käytössä!"
+
+msgid "Start Dish Motor"
+msgstr ""
 
 msgid "Start scan"
 msgstr ""
@@ -373,6 +454,9 @@ msgstr "Transponderihaku on peruutettu käyttäjän toimesta."
 msgid "The suggested polarisation for this satellite is \"%s\""
 msgstr "Suositeltu polarisaatio tälle satelliittille on \""
 
+msgid "This plugin is designed specifically for TNAP images and has custom dependencies that may not be available on other image types. Running it on non-TNAP images may cause system instability. Please install the appropriate version for your image type."
+msgstr ""
+
 msgid "Transponder searching finished!"
 msgstr ""
 
@@ -384,6 +468,15 @@ msgid "Use Sundtek full hardware blind scan!"
 msgstr ""
 
 msgid "Utility from the manufacturer"
+msgstr ""
+
+msgid "Verify satellite position after scan"
+msgstr ""
+
+msgid "Verifying satellite position"
+msgstr ""
+
+msgid "Warning: satellite identified itself as %s but results were kept as %s."
 msgstr ""
 
 #, fuzzy

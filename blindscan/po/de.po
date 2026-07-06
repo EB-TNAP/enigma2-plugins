@@ -37,6 +37,12 @@ msgid ""
 "You must use the power adapter."
 msgstr "Sie müssen das Netzteil verwenden."
 
+msgid "                                           Blind scan state-"
+msgstr "                                           Blindscan Status-"
+
+msgid "   Elapsed %d:%02d"
+msgstr "   Verstrichen %d:%02d"
+
 #, fuzzy
 msgid "   Starting Sundtek hardware blind scan."
 msgstr "Starten des Sundtek Hardware-Blindscans."
@@ -50,6 +56,9 @@ msgstr "\"Suche nach Kanälen\" sucht Kanäle und speichert sie in Ihrem Empfän
 #, fuzzy
 msgid "\"scan for channels\" searches for channels and saves them to your receiver; \"Save to XML\" does a transponder search and saves the results in satellites.xml format and stores it in /tmp"
 msgstr "\"Suche nach Kanälen\" sucht Kanäle und speichert sie in Ihrem Empfänger; \"Suche nach Transpondern\" führt eine Transpondersuche durch und zeigt die Ergebnisse an, so dass der Benutzer bestimmte oder alle Transponder auswählen kann. Beide Optionen speichern die Ergebnisse in der Datei satellites.xml unter /tmp"
+
+msgid "%.1fW - %s(db)"
+msgstr "%.1fW - %s(dB)"
 
 #, python-format
 msgid "%d transponder(s) found"
@@ -70,8 +79,14 @@ msgstr "%dMHz gescannt"
 msgid "Accuracy (higher is better)"
 msgstr "Genauigkeit (höher ist besser)"
 
+msgid "After the blind scan the strongest found transponders are tuned and the NIT broadcast by the satellite is read to confirm the dish really is pointing at the selected satellite. Recommended for motorised dishes, as DiSEqC rotors give no position feedback."
+msgstr "Nach dem Blindscan werden die stärksten gefundenen Transponder angesteuert und die vom Satelliten ausgesendete NIT wird gelesen, um zu bestätigen, dass die Schüssel tatsächlich auf den ausgewählten Satelliten ausgerichtet ist. Empfohlen für motorisierte Schüsseln, da DiSEqC-Rotoren keine Positionsrückmeldung liefern."
+
 msgid "Auto / Manual"
 msgstr ""
+
+msgid "Blind Scan (TNAP-MOD)"
+msgstr "Blindscan (TNAP-MOD)"
 
 msgid "Blind scan"
 msgstr "Blindscan"
@@ -81,6 +96,9 @@ msgstr "Blindscan für DVB-S2-Tuner"
 
 msgid "Blind scan state"
 msgstr "Blindscan Status"
+
+msgid "Blindscan is not supported for this satellite "
+msgstr "Blindscan wird für diesen Satelliten nicht unterstützt "
 
 msgid "Blindscan is not supported in "
 msgstr "Blindscan wird nicht unterstützt bei "
@@ -126,6 +144,12 @@ msgstr "Deaktiviert das Entfernen von Duplikaten"
 msgid "Disable sync with known transponders"
 msgstr "Deaktiviert die Synchronisierung mit bekannten Transpondern"
 
+msgid "Discard scan results"
+msgstr "Suchergebnisse verwerfen"
+
+msgid "Don't scan lamedb transponders"
+msgstr "Transponder aus der lamedb nicht scannen"
+
 msgid "Exit"
 msgstr "Zurück"
 
@@ -147,17 +171,26 @@ msgstr "Hardware Blindscan wird von diesem Tuner Typ nicht unterstützt (%s)!"
 msgid "Hardware type"
 msgstr ""
 
+msgid "If you select \"no\" the scan will skip transponders that use Multiple Input Stream technology, which speeds up scanning in regions where these are not used."
+msgstr "Wenn Sie \"nein\" wählen, überspringt die Suche Transponder, die die Multiple-Input-Stream-Technologie verwenden, wodurch die Suche in Regionen, in denen diese nicht verwendet wird, beschleunigt wird."
+
 msgid "If you select \"yes\" all channels on the satellite being search will be deleted before starting the current search, yes (keep feeds) means the same but hold all feed services/transponders."
 msgstr "Wenn Sie \"Ja\" auswählen, werden alle Kanäle auf dem Satelliten gelöscht, bevor die aktuelle Suche gestartet wird. Ja (Feeds beibehalten) bedeutet dasselbe, aber alle Feed-Dienste/Transponder werden beibehalten."
 
 msgid "If you select \"yes\" the scan will only save channels that are not encrypted; \"no\" will find encrypted and non-encrypted channels."
 msgstr "Wenn Sie \"Ja\" auswählen, speichert der Scan nur Kanäle, die nicht verschlüsselt sind. \"Nein\" speichert verschlüsselte und unverschlüsselte Kanäle."
 
+msgid "If you select \"yes\" the scan will only search transponders not listed in lamedb channel file"
+msgstr "Wenn Sie \"ja\" wählen, sucht die Suche nur Transponder, die nicht in der lamedb-Kanaldatei aufgeführt sind"
+
 msgid "If you select \"yes\" the scan will only search transponders not listed in satellites.xml"
 msgstr "Wenn Sie \"Ja\" auswählen, sucht der Scan nur nach Transpondern, die nicht in der Datei satellites.xml aufgeführt sind"
 
 msgid "It seems manufacturer does not support blind scan for this tuner."
 msgstr "Es scheint, dass der Hersteller den Blindscan für diesen Tuner nicht unterstützt."
+
+msgid "Keep results as %s"
+msgstr "Ergebnisse als %s übernehmen"
 
 msgid "LNB inversion"
 msgstr ""
@@ -217,6 +250,15 @@ msgstr "Polarisation"
 msgid "Polarisation, select horizontal, vertical or both."
 msgstr ""
 
+msgid "Preparing blind scan..."
+msgstr "Blindscan wird vorbereitet..."
+
+msgid "Preparing to verify dish position for %s ..."
+msgstr "Vorbereitung zur Überprüfung der Schüsselposition für %s ..."
+
+msgid "Press EXIT to skip verification"
+msgstr "EXIT drücken, um die Überprüfung zu überspringen"
+
 msgid "Press Green/OK to start the scan"
 msgstr "Drücken der Grünen/OK Taste startet die Suche"
 
@@ -228,8 +270,17 @@ msgstr "Drücken der OK Taste startet die Suche"
 msgid "Press green to start service searching."
 msgstr "Grünen Taste drücken um die Kanalsuche zu starten!"
 
+msgid "Relabel results to %s"
+msgstr "Ergebnisse umbenennen zu %s"
+
+msgid "Reset defaults"
+msgstr "Standardwerte zurücksetzen"
+
 msgid "Restore defaults"
 msgstr ""
+
+msgid "Results relabelled to %s (identified via NIT)."
+msgstr "Ergebnisse umbenannt zu %s (per NIT identifiziert)."
 
 msgid "Rotor: "
 msgstr "Rotor: "
@@ -240,11 +291,29 @@ msgstr "Satellit"
 msgid "Satellite blind scan"
 msgstr "Satellit Blindscan"
 
+msgid "Satellite position could not be verified (no usable NIT data)."
+msgstr "Satellitenposition konnte nicht überprüft werden (keine verwendbaren NIT-Daten)."
+
+msgid "Satellite position not verified (skipped)."
+msgstr "Satellitenposition nicht überprüft (übersprungen)."
+
+msgid "Satellite position verification failed (internal error)."
+msgstr "Überprüfung der Satellitenposition fehlgeschlagen (interner Fehler)."
+
+msgid "Satellite position verified via NIT: %s."
+msgstr "Satellitenposition per NIT überprüft: %s."
+
 msgid "Scan"
 msgstr "Suche"
 
+msgid "Scan MIS transponders"
+msgstr "MIS-Transponder suchen"
+
 msgid "Scan Step in MHz(TBS5925)"
 msgstr "Suche schrittweise in MHz (TBS5925)"
+
+msgid "Scan results discarded."
+msgstr "Suchergebnisse verworfen."
 
 msgid "Scan satellites for new transponders"
 msgstr "Durchsuche Satelliten nach neuen Transpondern"
@@ -263,6 +332,9 @@ msgstr "Höchste Symbolrate"
 
 msgid "Scan unknown error!"
 msgstr "Unbekannter Fehler bei Suche aufgetreten!"
+
+msgid "Scanning... no transponders found yet."
+msgstr "Suche läuft... noch keine Transponder gefunden."
 
 #, python-format
 msgid ""
@@ -305,6 +377,9 @@ msgstr ""
 msgid "Select the satellite you wish to search"
 msgstr "Satelliten (Orbital Position) auswählen, der abgesucht werden soll"
 
+msgid "Select the satellite you wish to search "
+msgstr "Wählen Sie den Satelliten aus, den Sie durchsuchen möchten "
+
 msgid ""
 "Select transponders and press green to scan.\n"
 "Press yellow to select all transponders and blue to deselect all."
@@ -322,11 +397,17 @@ msgstr ""
 msgid "Service searching will start AUTOMATICALLY. To change this press green."
 msgstr ""
 
+msgid "Set \"Start Dish Motor\" to \"Yes\" if you have changed the satellite position in this menu and wait until motor stops before starting Blindscan. (\"Start Dish Motor\" defaults to \"No\" after Dish Move Starts.)"
+msgstr "Setzen Sie \"Schüsselmotor starten\" auf \"Ja\", wenn Sie die Satellitenposition in diesem Menü geändert haben, und warten Sie, bis der Motor stoppt, bevor Sie den Blindscan starten. (\"Schüsselmotor starten\" wird nach Beginn der Schüsselbewegung standardmäßig auf \"Nein\" gesetzt.)"
+
 msgid "Smaller steps takes longer but scan is more thorough"
 msgstr "Kleinere Schritte benötigen länger, aber die Suche ist genauer"
 
 msgid "Sorry, this tuner is in use."
 msgstr "Dieser Tuner ist in Nutzung."
+
+msgid "Start Dish Motor"
+msgstr "Schüsselmotor starten"
 
 msgid "Start scan"
 msgstr "Starte Suche"
@@ -352,6 +433,9 @@ msgstr "Blindscan Suche wurde durch den Nutzer abgebrochen."
 msgid "The suggested polarisation for this satellite is \"%s\""
 msgstr "Empfohlene Polarisation für diesen Satelliten ist \"%s\""
 
+msgid "This plugin is designed specifically for TNAP images and has custom dependencies that may not be available on other image types. Running it on non-TNAP images may cause system instability. Please install the appropriate version for your image type."
+msgstr "Dieses Plugin wurde speziell für TNAP-Images entwickelt und hat spezielle Abhängigkeiten, die bei anderen Image-Typen möglicherweise nicht verfügbar sind. Die Ausführung auf Nicht-TNAP-Images kann zu Systeminstabilität führen. Bitte installieren Sie die passende Version für Ihren Image-Typ."
+
 msgid "Transponder searching finished!"
 msgstr "Transpondersuche beendet!"
 
@@ -363,6 +447,15 @@ msgstr "Nutze Sundtek für einen echten Hardware Blindscan!"
 
 msgid "Utility from the manufacturer"
 msgstr ""
+
+msgid "Verify satellite position after scan"
+msgstr "Satellitenposition nach der Suche überprüfen"
+
+msgid "Verifying satellite position"
+msgstr "Satellitenposition wird überprüft"
+
+msgid "Warning: satellite identified itself as %s but results were kept as %s."
+msgstr "Warnung: Satellit hat sich als %s identifiziert, aber die Ergebnisse wurden als %s übernommen."
 
 msgid "When a neighbouring satellite is very strong this avoids searching transponders known to be coming from the neighbouring satellite."
 msgstr "Wenn ein Nachbar Satellit sehr stark ist, wird vermieden, Transponder zu suchen, von denen bekannt ist, dass sie vom benachbarten Satelliten kommen."

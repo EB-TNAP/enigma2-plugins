@@ -34,6 +34,12 @@ msgid ""
 "You must use the power adapter."
 msgstr ""
 
+msgid "                                           Blind scan state-"
+msgstr ""
+
+msgid "   Elapsed %d:%02d"
+msgstr ""
+
 msgid "   Starting Sundtek hardware blind scan."
 msgstr ""
 
@@ -55,6 +61,9 @@ msgstr ""
 "يبحث عن التردد ويعرض النتيجة على الشاشة الصغيرة من قبل المستخدم لتحديد بعض أو كل الترددات.\n"
 "عرض كل الخيارين حفظ النتائج من ملف ستلايت اكسمل في مجلد تمب"
 
+msgid "%.1fW - %s(db)"
+msgstr ""
+
 #, python-format
 msgid "%d transponder(s) found"
 msgstr ""
@@ -74,7 +83,13 @@ msgstr ""
 msgid "Accuracy (higher is better)"
 msgstr ""
 
+msgid "After the blind scan the strongest found transponders are tuned and the NIT broadcast by the satellite is read to confirm the dish really is pointing at the selected satellite. Recommended for motorised dishes, as DiSEqC rotors give no position feedback."
+msgstr ""
+
 msgid "Auto / Manual"
+msgstr ""
+
+msgid "Blind Scan (TNAP-MOD)"
 msgstr ""
 
 msgid "Blind scan"
@@ -85,6 +100,9 @@ msgstr ""
 
 msgid "Blind scan state"
 msgstr "حالة البحث الأعمى"
+
+msgid "Blindscan is not supported for this satellite "
+msgstr ""
 
 #, fuzzy
 msgid "Blindscan is not supported in "
@@ -129,6 +147,12 @@ msgstr "تعطيل وحذف التكرارات"
 msgid "Disable sync with known transponders"
 msgstr "تعطيل المزامنة مع الترددات المعروفة"
 
+msgid "Discard scan results"
+msgstr ""
+
+msgid "Don't scan lamedb transponders"
+msgstr ""
+
 msgid "Exit"
 msgstr "خروج"
 
@@ -150,6 +174,9 @@ msgstr ""
 msgid "Hardware type"
 msgstr ""
 
+msgid "If you select \"no\" the scan will skip transponders that use Multiple Input Stream technology, which speeds up scanning in regions where these are not used."
+msgstr ""
+
 #, fuzzy
 msgid "If you select \"yes\" all channels on the satellite being search will be deleted before starting the current search, yes (keep feeds) means the same but hold all feed services/transponders."
 msgstr "إذا قمت بتحديد \"نعم\" سيتم حذف جميع القنوات على القمر الصناعي يجري البحث قبل البدء في البحث الحالي."
@@ -157,10 +184,16 @@ msgstr "إذا قمت بتحديد \"نعم\" سيتم حذف جميع القن�
 msgid "If you select \"yes\" the scan will only save channels that are not encrypted; \"no\" will find encrypted and non-encrypted channels."
 msgstr "إذا قمت بتحديد \"نعم\" فانه يبحث فقط و يحفظ القنوات الغير مشفرة; إذا أخترت \"لا\" ستجد القنوات المشفرة والغير مشفرة."
 
+msgid "If you select \"yes\" the scan will only search transponders not listed in lamedb channel file"
+msgstr ""
+
 msgid "If you select \"yes\" the scan will only search transponders not listed in satellites.xml"
 msgstr "إذا قمت بتحديد \"نعم\" المسح سيتم البحث فقط مرسلا غير مسرود في satellites.xml"
 
 msgid "It seems manufacturer does not support blind scan for this tuner."
+msgstr ""
+
+msgid "Keep results as %s"
 msgstr ""
 
 msgid "LNB inversion"
@@ -220,6 +253,15 @@ msgstr "الاستقطاب"
 msgid "Polarisation, select horizontal, vertical or both."
 msgstr ""
 
+msgid "Preparing blind scan..."
+msgstr ""
+
+msgid "Preparing to verify dish position for %s ..."
+msgstr ""
+
+msgid "Press EXIT to skip verification"
+msgstr ""
+
 msgid "Press Green/OK to start the scan"
 msgstr "أضغط الزر الأخضر/موافق لبدء البحث"
 
@@ -231,7 +273,16 @@ msgstr "أضغط الزر الأخضر/موافق لبدء البحث"
 msgid "Press green to start service searching."
 msgstr "أضغط الزر الأخضر/موافق لبدء البحث"
 
+msgid "Relabel results to %s"
+msgstr ""
+
+msgid "Reset defaults"
+msgstr ""
+
 msgid "Restore defaults"
+msgstr ""
+
+msgid "Results relabelled to %s (identified via NIT)."
 msgstr ""
 
 msgid "Rotor: "
@@ -244,10 +295,28 @@ msgstr "قمر صناعي"
 msgid "Satellite blind scan"
 msgstr "قمر صناعي"
 
+msgid "Satellite position could not be verified (no usable NIT data)."
+msgstr ""
+
+msgid "Satellite position not verified (skipped)."
+msgstr ""
+
+msgid "Satellite position verification failed (internal error)."
+msgstr ""
+
+msgid "Satellite position verified via NIT: %s."
+msgstr ""
+
 msgid "Scan"
 msgstr "بحث"
 
+msgid "Scan MIS transponders"
+msgstr ""
+
 msgid "Scan Step in MHz(TBS5925)"
+msgstr ""
+
+msgid "Scan results discarded."
 msgstr ""
 
 #, fuzzy
@@ -269,6 +338,9 @@ msgstr "إيقاف البحث على معدل الترميز"
 #, fuzzy
 msgid "Scan unknown error!"
 msgstr "البحث فقط عن الترددات المجهولة"
+
+msgid "Scanning... no transponders found yet."
+msgstr ""
 
 #, fuzzy, python-format
 msgid ""
@@ -312,6 +384,9 @@ msgstr ""
 msgid "Select the satellite you wish to search"
 msgstr "حدد الأقمار الصناعية التي ترغب في البحث عنها"
 
+msgid "Select the satellite you wish to search "
+msgstr ""
+
 msgid ""
 "Select transponders and press green to scan.\n"
 "Press yellow to select all transponders and blue to deselect all."
@@ -327,10 +402,16 @@ msgstr ""
 msgid "Service searching will start AUTOMATICALLY. To change this press green."
 msgstr ""
 
+msgid "Set \"Start Dish Motor\" to \"Yes\" if you have changed the satellite position in this menu and wait until motor stops before starting Blindscan. (\"Start Dish Motor\" defaults to \"No\" after Dish Move Starts.)"
+msgstr ""
+
 msgid "Smaller steps takes longer but scan is more thorough"
 msgstr ""
 
 msgid "Sorry, this tuner is in use."
+msgstr ""
+
+msgid "Start Dish Motor"
 msgstr ""
 
 msgid "Start scan"
@@ -357,6 +438,9 @@ msgstr "تم إلغاء البحث الأعمى عن القنوات من قبل 
 msgid "The suggested polarisation for this satellite is \"%s\""
 msgstr "الاستقطاب المقترح لهذا القمر هو \"%s\""
 
+msgid "This plugin is designed specifically for TNAP images and has custom dependencies that may not be available on other image types. Running it on non-TNAP images may cause system instability. Please install the appropriate version for your image type."
+msgstr ""
+
 msgid "Transponder searching finished!"
 msgstr ""
 
@@ -367,6 +451,15 @@ msgid "Use Sundtek full hardware blind scan!"
 msgstr ""
 
 msgid "Utility from the manufacturer"
+msgstr ""
+
+msgid "Verify satellite position after scan"
+msgstr ""
+
+msgid "Verifying satellite position"
+msgstr ""
+
+msgid "Warning: satellite identified itself as %s but results were kept as %s."
 msgstr ""
 
 msgid "When a neighbouring satellite is very strong this avoids searching transponders known to be coming from the neighbouring satellite."
