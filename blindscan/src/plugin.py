@@ -11,7 +11,9 @@ from Screens.ChoiceBox import ChoiceBox
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 from Tools.BoundFunction import boundFunction
+from Components.Sources.CanvasSource import CanvasSource
 from .filters import TransponderFiltering
+from .bssignalmonitor import DishSignalMonitor, SweepSignalGraph, format_reading_text, reading_display_values, save_sweep_history, restore_sweep_history
 from time import time
 import os
 from . import bsconfig
@@ -60,7 +62,15 @@ class Blindscan(BlindscanUIMixin, BlindscanEngineMixin, BlindscanVerifyMixin, Bl
 		<!-- vertical divider: body region only, dimmer than the frame -->
 		<eLabel position="1255,158" size="2,660" backgroundColor="#00808080"/>
 
-		<widget name="description" position="1285,158" size="590,660" font="Regular;28" foregroundColor="#00ffc000" transparent="1"/>
+		<widget name="description" position="1285,158" size="590,480" font="Regular;28" foregroundColor="#00ffc000" transparent="1"/>
+
+		<!-- live signal monitor for the tuner SELECTED in this menu only:
+		     one raw S/Q status line plus a sweeping left-to-right graph
+		     (green=locked, amber=no lock, cyan tick=Q dB) that wraps back
+		     to the left edge. Updates continuously (including pre-lock) so
+		     dish movement is visible while adjusting. -->
+		<widget name="dishmonitor" position="1285,648" size="590,26" font="Console;20" foregroundColor="#0056c856" transparent="1"/>
+		<widget source="signalgraph" render="Canvas" position="1285,682" size="590,130" transparent="1"/>
 
 		<!-- footer hairline above the introduction line -->
 		<eLabel position="22,842" size="1876,1" backgroundColor="#00808080"/>
@@ -105,6 +115,25 @@ class Blindscan(BlindscanUIMixin, BlindscanEngineMixin, BlindscanVerifyMixin, Bl
 
 		self.frontend = None
 		self["Frontend"] = FrontendStatus(frontend_source=lambda: self.frontend, update_interval=500)
+
+		# Live raw S/Q readout + sweep graph for the tuner SELECTED in this
+		# menu (self.scan_nims), not all tuners: showing both produced
+		# apparent crossover readings whenever the other tuner sat locked
+		# on a live channel. The monitor still opens all DVB-S frontends,
+		# so switching the Tuner entry in the menu switches the display
+		# instantly (and resets the graph). See bssignalmonitor.py.
+		# It never touches tuning, so it can't affect the scan itself.
+		self.dishMonitor = DishSignalMonitor()
+		self["dishmonitor"] = Label("")
+		self["signalgraph"] = CanvasSource()
+		# width/height must match the Canvas widget size= in the skin
+		self.signalGraph = SweepSignalGraph(self["signalgraph"], 590, 130)
+		self._graph_slot = None
+		self.onLayoutFinish.append(self._graphRestoreInitial)
+		self.dishMonitorTimer = eTimer()
+		self.dishMonitorTimer.callback.append(self.updateDishMonitor)
+		self.dishMonitorTimer.start(400, False)
+		self.onClose.append(self.stopDishMonitor)
 
 		self.list = []
 		self.status = ""
@@ -198,6 +227,52 @@ class Blindscan(BlindscanUIMixin, BlindscanEngineMixin, BlindscanVerifyMixin, Bl
 			self["config"].onSelectionChanged.append(self.textHelp)
 		self.textHelp()
 		self.changedEntry()
+
+	def getSelectedTunerSlot(self):
+		"""NIM slot number currently selected in the Tuner config entry,
+		falling back to the first DVB-S slot if unparsable/absent."""
+		try:
+			return int(self.scan_nims.value)
+		except (TypeError, ValueError, AttributeError):
+			slots = self.dishMonitor.slots()
+			return slots[0] if slots else None
+
+	def _graphRestoreInitial(self):
+		# Resume this slot's trace from a previous screen/session of the
+		# plugin (progress panel, results screen, or an earlier visit
+		# here) rather than starting from a blank sweep.
+		self._graph_slot = self.getSelectedTunerSlot()
+		restore_sweep_history(self._graph_slot, self.signalGraph)
+
+	def updateDishMonitor(self):
+		try:
+			slot = self.getSelectedTunerSlot()
+			if slot != self._graph_slot:
+				# tuner changed in the menu: park the old slot's trace and
+				# resume the new slot's own (each keeps separate history)
+				save_sweep_history(self._graph_slot, self.signalGraph)
+				self._graph_slot = slot
+				restore_sweep_history(slot, self.signalGraph)
+			if slot is None or slot not in self.dishMonitor.slots():
+				self["dishmonitor"].setText(_("Selected tuner not available."))
+				self.signalGraph.add_sample(None, False, available=False)
+				return
+			# read ONCE per tick, feed both the text line and the graph
+			reading = self.dishMonitor.read(slot)
+			self["dishmonitor"].setText(format_reading_text(slot, reading))
+			pct, locked, snr_db, _raw_lock = reading_display_values(slot, reading)
+			self.signalGraph.add_sample(pct, locked, snr_db)
+			# snapshot every tick so other screens (progress panel, results)
+			# can pick the trace up regardless of open/close ordering
+			save_sweep_history(slot, self.signalGraph)
+		except Exception as e:
+			print("[Blindscan][updateDishMonitor] error:", e)
+
+	def stopDishMonitor(self):
+		self.dishMonitorTimer.stop()
+		save_sweep_history(self._graph_slot, self.signalGraph)
+		self.dishMonitor.close()
+
 
 def BlindscanCallback(close, answer):
 	if close and answer:

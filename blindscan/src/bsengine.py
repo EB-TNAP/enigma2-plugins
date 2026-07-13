@@ -1,6 +1,6 @@
 from __future__ import print_function
 from . import _
-from enigma import eConsoleAppContainer, eDVBFrontendParametersSatellite, eDVBResourceManager
+from enigma import eConsoleAppContainer, eDVBFrontendParametersSatellite, eDVBResourceManager, eDVBSatelliteEquipmentControl
 from Components.config import config
 from Components.NimManager import nimmanager
 from Components.TuneTest import Tuner
@@ -102,6 +102,7 @@ class BlindscanEngineMixin(object):
 			if self.raw_channel:
 				self.frontend = self.raw_channel.getFrontend()
 				if self.frontend:
+					print("[Blindscan][openFrontend] allocated raw channel on feid %d, frontend=%r" % (self.feid, self.frontend))
 					return True
 				else:
 					print("[Blindscan][openFrontend] getFrontend failed")
@@ -197,7 +198,10 @@ class BlindscanEngineMixin(object):
 		init_progress = _("Preparing blind scan...")
 		init_action = _("Looking for available transponders.\n \n" + tuner + "\n \n")
 		self.progress_base = init_progress
-		self.panel = self.session.openWithCallback(self.panelClosed, BlindscanState, init_progress, init_action, [])
+		# tuner_slot pins the panel's live signal monitor/graph to the tuner
+		# actually being blindscanned (same source of truth as self.feid,
+		# which prepareScanData() hasn't set yet at this point).
+		self.panel = self.session.openWithCallback(self.panelClosed, BlindscanState, init_progress, init_action, [], tuner_slot=int(self.scan_nims.value))
 		self.blindscan_session = self.panel
 		# The scan panel fully covers this config screen for the whole multi-step scan.
 		# Hide it so the compositor stops blending a screen nobody can see. panelClosed()
@@ -249,6 +253,7 @@ class BlindscanEngineMixin(object):
 			else: # low band
 				tuning_frequency = random_ku_band_low_tunable_freq
 
+		print("[Blindscan][prepareScanData] activation tune: freq=%d pol=%s orb=%s frontend=%r rotor_moving=%s" % (tuning_frequency, tab_pol[pol], str(orb[0]), self.frontend, eDVBSatelliteEquipmentControl.getInstance().isRotorMoving()))
 		self.tuner.tune(
 			(tuning_frequency,
 			0, # symbolrate

@@ -9,8 +9,6 @@ from Screens.MessageBox import MessageBox
 from Screens.ServiceScan import ServiceScan
 from time import time
 import os
-import Dvbcsva
-import Dvbcsvb
 from . import bsconfig
 from .bsconfig import (BOX_MODEL, BOX_NAME, XML_BLINDSCAN_DIR, _unsupportedNims, Lastrotorposition)
 from .bsscreens import BlindscanState
@@ -328,18 +326,10 @@ class BlindscanUIMixin(object):
 			# The user explicitly asked to move the dish. This is the only point
 			# (besides starting the scan) where it is acceptable to grab the
 			# frontend and stop the running service. startDishMovingIfRotorSat()
-			# allocates the tuner (setting self.tuner) and prepares the rotor.
-			if self.startDishMovingIfRotorSat():
-				orb_pos = self.getOrbPos()
-				tps = nimmanager.getTransponders(orb_pos)
-				if len(tps) >= 1:
-					transponder = (tps[0][1] // 1000, tps[0][2] // 1000, tps[0][3], tps[0][4], 2, orb_pos, tps[0][5], tps[0][6], tps[0][8], tps[0][9], eDVBFrontendParametersSatellite.No_Stream_Id_Filter, eDVBFrontendParametersSatellite.PLS_Gold, eDVBFrontendParametersSatellite.PLS_Default_Gold_Code, eDVBFrontendParametersSatellite.No_T2MI_PLP_Id, eDVBFrontendParametersSatellite.T2MI_Default_Pid)
-					idx_selected_sat = int(self.getSelectedSatIndex(self.scan_nims.value))
-					tmp_list = [self.satList[int(self.scan_nims.value)][self.scan_satselection[idx_selected_sat].index]]
-					orb = tmp_list[0][0]
-					self.orb_pos_now = 3600 - orb
-					self.orb_pos_now = self.orb_pos_now /10
-					self.tuner.tune(transponder)
+			# allocates the tuner, tunes the target sat's reference transponder
+			# (which sends the rotor DiSEqC goto) and sets orb_pos/orb_pos_now.
+			if not self.startDishMovingIfRotorSat():
+				print("[Blindscan][newConfig] startDishMovingIfRotorSat() returned False - no dish move / no tune issued")
 		if cur and (cur == self.tunerEntry or cur == self.satelliteEntry or cur == self.onlyUnknownTpsEntry or cur == self.userDefinedLnbInversionEntry or config.blindscan.motor_start.value == True):
 			self.createSetup()
 		self.setBlueText()
@@ -620,7 +610,9 @@ class BlindscanUIMixin(object):
 		if config.blindscan.search_type.value == "services": # Do a service scan
 			self.startScan(True, self.tmp_tplist)
 		else: # Display results
-			self.session.openWithCallback(self.startScan, BlindscanState, _("Search completed\n%d transponders found in %d:%02d minutes.\nDetails saved in: %s") % (len(self.tmp_tplist), self.runtime / 60, self.runtime % 60, xml_location) + self.ident_note, "", blindscanStateList, True)
+			# tuner_slot: keep the results screen's signal monitor/graph on the
+			# tuner that ran the scan (self.feid, set in prepareScanData()).
+			self.session.openWithCallback(self.startScan, BlindscanState, _("Search completed\n%d transponders found in %d:%02d minutes.\nDetails saved in: %s") % (len(self.tmp_tplist), self.runtime / 60, self.runtime % 60, xml_location) + self.ident_note, "", blindscanStateList, True, tuner_slot=self.feid)
 
 	def startScan(self, *retval):
 		if retval[0] == False:
@@ -849,6 +841,21 @@ class BlindscanUIMixin(object):
 			print("[Blindscan][startDishMovingIfRotorSat] self.prepareFrontend() failed")
 			return False
 		self.orb_pos = orb_pos
+		# Issue the reference-transponder tune HERE, immediately after the
+		# frontend was prepared - this is what actually starts the rotor
+		# move (eDVBFrontend's SEC sequence sends the DiSEqC goto) and
+		# parks the demod searching the target sat's first TP. This tune
+		# used to live in newConfig() while this function built the same
+		# transponder and never used it; consolidated so there is exactly
+		# ONE dish-move tune path, fully instrumented for the "no carrier
+		# search after a completed scan" investigation.
+		idx_selected_sat = int(self.getSelectedSatIndex(self.scan_nims.value))
+		tmp_list = [self.satList[int(self.scan_nims.value)][self.scan_satselection[idx_selected_sat].index]]
+		self.orb_pos_now = (3600 - tmp_list[0][0]) / 10
+		print("[Blindscan][startDishMovingIfRotorSat] frontend=%r tuner=%r feid=%d" % (self.frontend, self.tuner, self.feid))
+		print("[Blindscan][startDishMovingIfRotorSat] tuning ref TP freq=%d sr=%d pol=%d orb_pos=%d" % (transponder[0], transponder[1], transponder[2], orb_pos))
+		self.tuner.tune(transponder)
+		print("[Blindscan][startDishMovingIfRotorSat] tune() issued, rotor moving=%s" % self.getRotorMovingState())
 		if Lastrotorposition is not None and config.misc.lastrotorposition.value != 9999:
 			self.statusTimer.stop()
 			self.startStatusTimer()
@@ -875,44 +882,26 @@ class BlindscanUIMixin(object):
 				break
 			try:
 				if self.orb_pos_now == orb_pos:
-					text = _("%.1fW - %s(db)" %(orb_pos, self.getSignalStats()))
+					# Orbital position here was never reliably accurate (it's
+					# derived from the same rotor-timing math the position
+					# verification screen exists to double-check), so this no
+					# longer tries to display it. Signal strength (S) for the
+					# tuner actually driving this move is real, always
+					# available, and is what tells you the dish is doing
+					# something - which is what this line is actually for.
+					letter = chr(65 + self.feid) if isinstance(self.feid, int) and 0 <= self.feid < 8 else str(self.feid)
+					reading = self.dishMonitor.read(self.feid) if hasattr(self, "dishMonitor") else None
+					if reading and reading.get("available"):
+						sig = reading.get("signal")
+						sig_pct = (sig / 65535.0 * 100.0) if sig is not None else 0.0
+						text = _("Tuner %s  S: %d%%") % (letter, sig_pct)
+					else:
+						text = _("Tuner %s  S: --") % letter
 					self["rotorstatus"].setText(text)
 				else:
 					self["rotorstatus"].setText("")
 			except:
 				pass
-
-	def getSignalStats(self):
-		self.size = 0
-		self.signaltp = 0
-		if BOX_MODEL == "edision":
-			status = "/lib/modules/5.15.0/extra/avl6261.ko"
-			self.size = os.path.getsize(status)
-		try:
-			import time
-			time.sleep(.2)	
-			for x in range(10):
-				if self.feid == 0:
-					if BOX_MODEL != "edision":
-						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 100
-					if BOX_MODEL == "edision":
-						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 4456.21
-					if BOX_MODEL == "edision" and self.size > 100000:
-						self.signaltp = Dvbcsva.fe.getSignalNoiseRatio() / 1000
-				if self.feid == 1:
-					if BOX_MODEL != "edision":
-						self.signaltp = Dvbcsvb.fe.getSignalNoiseRatio() / 100
-					if BOX_MODEL == "edision":
-						self.signaltp = Dvbcsvb.fe.getSignalNoiseRatio() / 43.357 / 100
-		except:
-			pass
-		if self.signaltp != 0:
-			if self.signaltp < 0 or self.signaltp > 30: # Get rid of nonsense values
-				return 0
-			return ("%.2f" %(self.signaltp))
-		else:
-			return 0
-
 
 	def OrbToStr(self, orbpos):
 		if orbpos > 1800:
