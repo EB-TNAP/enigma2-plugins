@@ -191,25 +191,32 @@ class _RawFrontendReader(object):
 			return None
 		sig_raw = snr_raw = snr_db = None
 		any_valid = False
+		# Drivers may fill multiple stat slots in any order (the AVL62X1
+		# publishes DECIBEL at stat[0] and RELATIVE at stat[1]), so scan
+		# them all: prefer RELATIVE for strength, DECIBEL for CNR - the
+		# same slot-scanning approach enigma2's readFrontendData uses.
 		st = props[0].u.st
-		if st.len > 0:
-			scale, val = st.stat[0].scale, st.stat[0].value
+		sig_dbm = None
+		for i in range(min(st.len, 4)):
+			scale, val = st.stat[i].scale, st.stat[i].value
 			if scale == FE_SCALE_RELATIVE:
 				sig_raw = max(0, min(65535, int(val)))
 				any_valid = True
-			elif scale == FE_SCALE_DECIBEL:
-				frac = (val / 1000.0 + 100.0) / 60.0  # -100dBm..-40dBm
-				sig_raw = int(max(0.0, min(1.0, frac)) * 65535)
+			elif scale == FE_SCALE_DECIBEL and sig_dbm is None:
+				sig_dbm = val / 1000.0
 				any_valid = True
+		if sig_raw is None and sig_dbm is not None:
+			frac = (sig_dbm + 100.0) / 60.0  # -100dBm..-40dBm
+			sig_raw = int(max(0.0, min(1.0, frac)) * 65535)
 		st = props[1].u.st
-		if st.len > 0:
-			scale, val = st.stat[0].scale, st.stat[0].value
+		for i in range(min(st.len, 4)):
+			scale, val = st.stat[i].scale, st.stat[i].value
 			if scale == FE_SCALE_DECIBEL:
 				db = val / 1000.0
 				if 0 < db <= 30:  # same nonsense guard as snr_raw_to_db
 					snr_db = db
 				any_valid = True
-			elif scale == FE_SCALE_RELATIVE:
+			elif scale == FE_SCALE_RELATIVE and snr_raw is None:
 				snr_raw = max(0, min(65535, int(val)))
 				any_valid = True
 		return sig_raw, snr_raw, snr_db, any_valid
